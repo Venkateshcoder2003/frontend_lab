@@ -13,6 +13,7 @@ exports.StudentManager = void 0;
 var logger_1 = require("../utils/logger");
 //Uses the Singleton pattern to ensure only one instance exists
 var StudentManager = /** @class */ (function () {
+    //Private constructor to enforce the singleton pattern
     function StudentManager() {
         //The main array of students, always kept sorted by name
         this.students = [];
@@ -21,13 +22,14 @@ var StudentManager = /** @class */ (function () {
         //A Map for instant lookups by roll number (for performance)
         this.studentsByRoll = new Map();
     }
+    //Gets the single, shared instance of the StudentManager
     StudentManager.getInstance = function () {
         if (!StudentManager.instance) {
             StudentManager.instance = new StudentManager();
         }
         return StudentManager.instance;
     };
-    // Initialize with data from disk at startup
+    //Initialize with data from disk at startup
     StudentManager.prototype.initializeFromDisk = function (studentsFromDisk) {
         this.students = __spreadArray([], studentsFromDisk, true);
         this.maintainSortOrder();
@@ -40,7 +42,7 @@ var StudentManager = /** @class */ (function () {
     StudentManager.prototype.maintainSortOrder = function () {
         this.students.sort(this.compareStudents);
     };
-    // Compare function for sorting (by fullName, then by rollNumber)
+    //Compare function for sorting (by fullName, then by rollNumber)
     StudentManager.prototype.compareStudents = function (a, b) {
         if (a.fullName < b.fullName)
             return -1;
@@ -48,28 +50,30 @@ var StudentManager = /** @class */ (function () {
             return 1;
         return a.rollNumber - b.rollNumber;
     };
+    //Returns the current list of all students in memory
     StudentManager.prototype.getStudents = function () {
         return this.students;
     };
+    //Returns a list of students that have not yet been saved to disk
     StudentManager.prototype.getSavedStudents = function () {
         return this.students.filter(function (student) { return student.isSavedToDisk; });
     };
     StudentManager.prototype.getUnsavedStudents = function () {
         return this.students.filter(function (student) { return !student.isSavedToDisk; });
     };
-    // Optimized add with sorted insertion
+    //Adds a new student to the in-memory list in its correct sorted position
     StudentManager.prototype.addStudent = function (student) {
         // Check if roll number already exists
         if (this.students.some(function (s) { return s.rollNumber === student.rollNumber; })) {
             logger_1.Logger.error("Roll number already exists.");
-            return true; // Error occurred
+            return true;
         }
-        // Insert student in correct sorted position
+        //Insert student in correct sorted position
         this.insertStudentSorted(student);
         this.studentsByRoll.set(student.rollNumber, student);
         logger_1.Logger.info("Student Added Successfully");
         logger_1.Logger.log(student);
-        return false; // Success
+        return false;
     };
     //Optimized insertion maintaining sort order
     StudentManager.prototype.insertStudentSorted = function (newStudent) {
@@ -87,30 +91,29 @@ var StudentManager = /** @class */ (function () {
         }
         this.students.splice(left, 0, newStudent);
     };
+    //Deletes a student from memory by roll number and Tracks the deletion if the student was previously saved to disk
     StudentManager.prototype.deleteStudent = function (rollNumber) {
-        // Step 1: Use the Map for an instant lookup.
+        //Use the Map for an instant lookup
         var studentToDelete = this.studentsByRoll.get(rollNumber);
         if (!studentToDelete) {
-            // If student not found, return failure status.
+            //If student not found, return failure status
             return { success: false, wasSaved: false };
         }
-        // Capture the save status BEFORE deleting the student.
-        // This assumes the Student model has an 'isSavedToDisk' property.
+        //Capture the save status BEFORE deleting the student
         var wasSaved = studentToDelete.isSavedToDisk || false;
         if (wasSaved) {
             this.studentsToDelete.push(studentToDelete);
         }
-        // Step 2: Use binary search to find the student's index in the sorted array.
+        //Use binary search to find the student's index in the sorted array
         var index = this.binarySearchFindIndex(studentToDelete);
         if (index === -1) {
-            // Data inconsistency: in map but not in array. Clean up map and report failure.
             this.studentsByRoll.delete(rollNumber);
             return { success: false, wasSaved: false };
         }
-        // Step 3: Remove the student from both data structures.
+        //Remove the student from both data structures
         this.students.splice(index, 1);
         this.studentsByRoll.delete(rollNumber);
-        // Return success along with whether the deleted student had been saved.
+        //Return success along with whether the deleted student had been saved
         return { success: true, wasSaved: wasSaved };
     };
     StudentManager.prototype.binarySearchFindIndex = function (studentToFind) {
@@ -119,24 +122,24 @@ var StudentManager = /** @class */ (function () {
         while (low <= high) {
             var mid = Math.floor((low + high) / 2);
             var midStudent = this.students[mid];
-            // Use our existing comparison function to guide the search
+            //Use our existing comparison function to guide the search
             var comparison = this.compareStudents(studentToFind, midStudent);
             if (comparison === 0) {
-                // We found a student with the same name and roll number. This is our target.
+                //We found a student with the same name and roll number. This is our target
                 return mid;
             }
             if (comparison < 0) {
-                // studentToFind comes before midStudent, so search the left half
+                //studentToFind comes before midStudent, so search the left half
                 high = mid - 1;
             }
             else {
-                // studentToFind comes after midStudent, so search the right half
+                //studentToFind comes after midStudent, so search the right half
                 low = mid + 1;
             }
         }
-        return -1; // Student not found
+        return -1; //Student not found
     };
-    // Save all current students to disk and mark as saved
+    //Save all current students to disk and mark as saved
     StudentManager.prototype.saveAllToDisk = function () {
         // Mark all existing students as saved
         for (var _i = 0, _a = this.students; _i < _a.length; _i++) {
@@ -148,7 +151,7 @@ var StudentManager = /** @class */ (function () {
         this.studentsToDelete = [];
         return this.students;
     };
-    // Custom sorting for display
+    //Custom sorting for display
     StudentManager.prototype.sortStudentsBy = function (field, type) {
         if (field === void 0) { field = "fullName"; }
         if (type === void 0) { type = "asc"; }
@@ -175,7 +178,7 @@ var StudentManager = /** @class */ (function () {
             return type === "desc" ? -comparison : comparison;
         });
     };
-    // Enhanced display with save status
+    //Enhanced display with save status
     StudentManager.prototype.displayStudents = function () {
         if (this.students.length === 0) {
             logger_1.Logger.print("No Student Details to Display.");
@@ -199,6 +202,7 @@ var StudentManager = /** @class */ (function () {
         var unsavedCount = this.getUnsavedStudents().length;
         logger_1.Logger.print("Total: ".concat(this.students.length, " students (").concat(savedCount, " saved to disk, ").concat(unsavedCount, " in memory only)"));
     };
+    //Checks if there are any unsaved additions or deletions
     StudentManager.prototype.hasUnsavedChanges = function () {
         return (this.getUnsavedStudents().length > 0 || this.studentsToDelete.length > 0);
     };

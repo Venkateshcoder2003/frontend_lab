@@ -37,13 +37,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleDefaultDisplay = handleDefaultDisplay;
+//Import all required mudules
 var student_manager_1 = require("../services/student_manager");
 var logger_1 = require("../utils/logger");
 var studentManager = student_manager_1.StudentManager.getInstance();
 function handleDefaultDisplay() {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            logger_1.Logger.info("Displaying all students (default sort by name, then roll number):");
+            logger_1.Logger.info("Displaying student data sorted in ascending order by Full Name and then by Roll Number.");
             studentManager.sortStudentsBy("fullName", "asc");
             studentManager.displayStudents();
             return [2 /*return*/];

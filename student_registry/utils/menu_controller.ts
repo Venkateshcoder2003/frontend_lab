@@ -47,7 +47,7 @@ export class MenuController {
       Logger.print("5. Exit");
       Logger.print("==========================================");
 
-      //Asynchronously wait for the user to enter their choice
+      //Asynchronously wait for the student to enter their choice
       const choice = await InputHandler.getChoice();
 
       switch (choice) {

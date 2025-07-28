@@ -21,7 +21,9 @@ export class InputHandler {
     studentInput.fullName = await AskQuery.askQuery("Enter Name: ");
     studentInput.age = await AskQuery.askQuery("Enter Age: ");
     studentInput.address = await AskQuery.askQuery("Enter Address: ");
-    studentInput.rollNumber = await AskQuery.askQuery("Enter Your Roll Number: ");
+    studentInput.rollNumber = await AskQuery.askQuery(
+      "Enter Your Roll Number: "
+    );
     studentInput.courses = await AskQuery.askQuery(
       "Enter your Courses A-F (Comma Separated): "
     );

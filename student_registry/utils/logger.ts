@@ -1,4 +1,5 @@
 // Logger class for standard logging throughout the application.
+import { Student } from "../models/student";
 export class Logger {
   static info(message: string) {
     console.log(`[studentRegistry]${message}`);
@@ -9,9 +10,9 @@ export class Logger {
   static print(message: string) {
     console.log(`${message}`);
   }
-  static log(user: any) {
+  static log(student: Student) {
     console.log(
-      `[studentRegistry]Your added data is: [${user.fullName} ${user.rollNumber} ${user.age} ${user.address} ${user.course}]`
+      `[studentRegistry]Your added data is: [${student.fullName} ${student.rollNumber} ${student.age} ${student.address} ${student.course}]`
     );
   }
 }

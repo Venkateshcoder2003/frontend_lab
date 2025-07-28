@@ -41,6 +41,7 @@ exports.handleDisplay = handleDisplay;
 exports.handleDelete = handleDelete;
 exports.handleSave = handleSave;
 exports.handleExit = handleExit;
+//Import all required modules
 var student_manager_1 = require("../services/student_manager");
 var data_serializer_1 = require("../services/data_serializer");
 var student_object_creater_1 = require("../utils/student_object_creater");
@@ -53,6 +54,7 @@ var handel_default_display_1 = require("./handel_default_display");
 var studentManager = student_manager_1.StudentManager.getInstance();
 var dataSerializer = data_serializer_1.DataSerializer.getInstance();
 var studentObjectCreater = new student_object_creater_1.StudentObjectCreater();
+//Handles the entire workflow for adding a new student
 function handleAdd() {
     return __awaiter(this, void 0, void 0, function () {
         var studentInput, validatedData, student, addResult;
@@ -66,6 +68,7 @@ function handleAdd() {
                     validatedData = _a.sent();
                     student = studentObjectCreater.createStudent(validatedData.fullName, validatedData.age, validatedData.address, validatedData.rollNumber, validatedData.courses);
                     addResult = studentManager.addStudent(student);
+                    //If the student was added successfully (no duplicates), display the current list
                     if (!addResult) {
                         logger_1.Logger.info("\nCurrent Students in Memory:");
                         studentManager.displayStudents();
@@ -75,6 +78,7 @@ function handleAdd() {
         });
     });
 }
+//Handles the logic for displaying students, routing to custom or default sort
 function handleDisplay() {
     return __awaiter(this, void 0, void 0, function () {
         var wantCustomSort;
@@ -97,6 +101,7 @@ function handleDisplay() {
         });
     });
 }
+//Handles the entire workflow for deleting a student by roll number
 function handleDelete() {
     return __awaiter(this, void 0, void 0, function () {
         var rollNumberInput, rollNumberValidation, deleteResult;
@@ -106,13 +111,16 @@ function handleDelete() {
                 case 1:
                     rollNumberInput = _a.sent();
                     rollNumberValidation = input_validator_1.InputValidator.validateRollNumberForDelete(rollNumberInput.toString());
+                    //If validation fails, show an error and stop
                     if (!rollNumberValidation.isValid) {
                         logger_1.Logger.error(rollNumberValidation.error);
                         return [2 /*return*/];
                     }
                     deleteResult = studentManager.deleteStudent(rollNumberValidation.value);
+                    //Provide feedback to the student based on the result
                     if (deleteResult.success) {
                         logger_1.Logger.info("Student with Roll Number ".concat(rollNumberValidation.value, " deleted successfully."));
+                        //Display the updated list of students
                         studentManager.displayStudents();
                     }
                     else {
@@ -123,6 +131,7 @@ function handleDelete() {
         });
     });
 }
+//Handles saving all unsaved changes from memory to the disk
 function handleSave() {
     return __awaiter(this, void 0, void 0, function () {
         var allStudents;
@@ -140,6 +149,7 @@ function handleSave() {
         });
     });
 }
+//Handles the application exit process
 function handleExit() {
     return __awaiter(this, void 0, void 0, function () {
         var unsavedCount, save, allStudents;
@@ -151,6 +161,7 @@ function handleExit() {
                     return [4 /*yield*/, input_handler_1.InputHandler.getYesNoInput("You have ".concat(unsavedCount, " unsaved changes. Do you want to save data before exit: "))];
                 case 1:
                     save = _a.sent();
+                    //If they say yes, run the save handler
                     if (save) {
                         allStudents = studentManager.saveAllToDisk();
                         dataSerializer.saveDataToDisk(allStudents);
@@ -164,6 +175,7 @@ function handleExit() {
                     logger_1.Logger.info("No unsaved changes. Exiting...");
                     _a.label = 3;
                 case 3:
+                    //Close the command-line input stream to allow the program to terminate
                     ask_query_1.AskQuery.close();
                     return [2 /*return*/];
             }

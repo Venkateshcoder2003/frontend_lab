@@ -37,11 +37,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleCustomSortDisplay = handleCustomSortDisplay;
+//Import all required modules
 var student_manager_1 = require("../services/student_manager");
 var input_handler_1 = require("../utils/input_handler");
 var input_validator_1 = require("../utils/input_validator");
 var logger_1 = require("../utils/logger");
+//Get the single instance of the StudentManager
 var studentManager = student_manager_1.StudentManager.getInstance();
+//Handles the entire process of sorting and displaying students based on student input
 function handleCustomSortDisplay() {
     return __awaiter(this, void 0, void 0, function () {
         var sortFieldInput, sortFieldValidation, sortTypeInput, sortTypeValidation;
@@ -68,6 +71,7 @@ function handleCustomSortDisplay() {
                         logger_1.Logger.error(sortTypeValidation.error);
                         return [2 /*return*/];
                     }
+                    //If all inputs are valid, tell the StudentManager to sort the in-memory list
                     studentManager.sortStudentsBy(sortFieldValidation.value, sortTypeValidation.value);
                     logger_1.Logger.info("Sorted by ".concat(sortFieldValidation.value, " in ").concat(sortTypeValidation.value, " order."));
                     studentManager.displayStudents();
