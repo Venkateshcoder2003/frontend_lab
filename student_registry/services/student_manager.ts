@@ -1,143 +1,15 @@
-// import { Student } from "../models/student"; //Import Student interface
-// import { Logger } from "../utils/logger"; //import Logger
-// import Course from "../models/course"; //Import Course enum
-
-// export class StudentManager {
-//   private static instance: StudentManager; //Singleton instance
-//   private students: Student[]; //Array to hold student objects
-
-//   //Private constructor to ensure that no one creates object
-//   private constructor() {}
-
-//   //Singleton method to share single instance across entire application
-//   static getInstance(): StudentManager {
-//     if (!StudentManager.instance) {
-//       StudentManager.instance = new StudentManager();
-//     }
-//     return StudentManager.instance;
-//   }
-
-//   //Set students array while loading from disk
-//   setStudents(student: Student[]): void {
-//     this.students = student;
-//     if (this.students.length > 1) {
-//       this.sortStudentsBy();
-//     }
-//   }
-
-//   //Get list of all students
-//   getStudents(): Student[] {
-//     return this.students;
-//   }
-
-//   //Add new student to the list
-//   addStudent(student: Student): boolean {
-//     let exists = false;
-//     for (let stu of this.students) {
-//       if (stu.rollNumber === student.rollNumber) {
-//         exists = true;
-//         break;
-//       }
-//     }
-
-//     if (exists) {
-//       Logger.error("Roll number already exists.");
-//       return true;
-//     } else {
-//       this.students.push(student);
-//       this.sortStudentsBy();
-//     }
-//   }
-
-//   //Delete student record  from the list using Binary Search
-//   deleteStudent(rollNumber: number): boolean {
-//     let left = 0;
-//     let right = this.students.length - 1;
-
-//     while (left <= right) {
-//       const mid = Math.floor((left + right) / 2);
-//       const midRollNumber = this.students[mid].rollNumber;
-
-//       if (midRollNumber === rollNumber) {
-//         this.students.splice(mid, 1); // Remove student at index mid
-//         return true;
-//       } else if (midRollNumber < rollNumber) {
-//         left = mid + 1;
-//       } else {
-//         right = mid - 1;
-//       }
-//     }
-//     return false;
-//   }
-
-//   //Sort students by given field (like name, age) and type (asc or desc)
-//   sortStudentsBy(field: any = "fullName", type: any = "asc"): any {
-//     this.students.sort((a, b) => {
-//       let comparision = 0;
-
-//       switch (field) {
-//         case "rollNumber":
-//           comparision = a.rollNumber - b.rollNumber;
-//           break;
-//         case "age":
-//           comparision = a.age - b.age;
-//           break;
-//         case "address":
-//           if (a.address < b.address) comparision = -1;
-//           else if (a.address > b.address) comparision = 1;
-//           else comparision = 0;
-//           break;
-//         case "fullName":
-//         default:
-//           if (a.fullName < b.fullName) comparision = -1;
-//           else if (a.fullName > b.fullName) comparision = 1;
-//           else {
-//             comparision = a.rollNumber - b.rollNumber;
-//           }
-//           break;
-//       }
-//       return type === "desc" ? -comparision : comparision;
-//     });
-//   }
-
-//   //Print all student Details
-//   displayStudents(): void {
-//     if (this.students.length === 0) {
-//       Logger.print("No Student Details to Display.");
-//       return;
-//     }
-
-//     Logger.print(
-//       "\n=============================================================="
-//     );
-//     Logger.print("RollNo | Name           | Age | Address        | Courses");
-//     Logger.print(
-//       "=============================================================="
-//     );
-
-//     for (const student of this.students) {
-//       const roll = String(student.rollNumber).padEnd(6, " ");
-//       const name = student.fullName.padEnd(14, " ");
-//       const age = String(student.age).padEnd(3, " ");
-//       const address = student.address.padEnd(14, " ");
-//       const courses = student.courses; // assuming it's an array
-
-//       Logger.print(`${roll} | ${name} | ${age} | ${address} | ${courses}`);
-//     }
-
-//     Logger.print(
-//       "=============================================================="
-//     );
-//   }
-// }
-
+//Import all required files
 import { Student } from "../models/student";
 import { Logger } from "../utils/logger";
 
+//Uses the Singleton pattern to ensure only one instance exists
 export class StudentManager {
   private static instance: StudentManager;
+  //The main array of students, always kept sorted by name
   private students: Student[] = [];
-  private studentsToDelete: Student[] = []; // Track deleted saved students for disk cleanup
+  //Tracks students that were saved but are now deleted from memory
+  private studentsToDelete: Student[] = [];
+  //A Map for instant lookups by roll number (for performance)
   private studentsByRoll: Map<number, Student> = new Map();
 
   private constructor() {}
@@ -159,6 +31,17 @@ export class StudentManager {
     Logger.info(
       `Loaded ${studentsFromDisk.length} students from disk into memory.`
     );
+  }
+
+  private maintainSortOrder(): void {
+    this.students.sort(this.compareStudents);
+  }
+
+  // Compare function for sorting (by fullName, then by rollNumber)
+  private compareStudents(a: Student, b: Student): number {
+    if (a.fullName < b.fullName) return -1;
+    if (a.fullName > b.fullName) return 1;
+    return a.rollNumber - b.rollNumber;
   }
 
   getStudents(): Student[] {
@@ -191,7 +74,7 @@ export class StudentManager {
     return false; // Success
   }
 
-  // Optimized insertion maintaining sort order
+  //Optimized insertion maintaining sort order
   private insertStudentSorted(newStudent: Student): void {
     let left = 0;
     let right = this.students.length;
@@ -210,46 +93,6 @@ export class StudentManager {
     this.students.splice(left, 0, newStudent);
   }
 
-  // Compare function for sorting (by fullName, then by rollNumber)
-  private compareStudents(a: Student, b: Student): number {
-    if (a.fullName < b.fullName) return -1;
-    if (a.fullName > b.fullName) return 1;
-    return a.rollNumber - b.rollNumber;
-  }
-
-  private maintainSortOrder(): void {
-    this.students.sort(this.compareStudents);
-  }
-
-  // Optimized deletion with disk cleanup tracking
-  // deleteStudent(rollNumber: number): { success: boolean; wasSaved: boolean } {
-  //   const index = this.findStudentIndex(rollNumber);
-
-  //   if (index !== -1) {
-  //     const studentToDelete = this.students[index];
-  //     const wasSaved = studentToDelete.isSavedToDisk;
-
-  //     // If student was saved to disk, track it for deletion during save
-  //     if (wasSaved) {
-  //       this.studentsToDelete.push(studentToDelete);
-  //     }
-
-  //     this.students.splice(index, 1);
-  //     return { success: true, wasSaved };
-  //   }
-
-  //   return { success: false, wasSaved: false };
-  // }
-
-  // private findStudentIndex(rollNumber: number): number {
-  //   for (let i = 0; i < this.students.length; i++) {
-  //     if (this.students[i].rollNumber === rollNumber) {
-  //       return i;
-  //     }
-  //   }
-  //   return -1;
-  // }
-
   deleteStudent(rollNumber: number): { success: boolean; wasSaved: boolean } {
     // Step 1: Use the Map for an instant lookup.
     const studentToDelete = this.studentsByRoll.get(rollNumber);
@@ -262,7 +105,9 @@ export class StudentManager {
     // Capture the save status BEFORE deleting the student.
     // This assumes the Student model has an 'isSavedToDisk' property.
     const wasSaved = studentToDelete.isSavedToDisk || false;
-
+    if (wasSaved) {
+      this.studentsToDelete.push(studentToDelete);
+    }
     // Step 2: Use binary search to find the student's index in the sorted array.
     const index = this.binarySearchFindIndex(studentToDelete);
 
@@ -280,7 +125,6 @@ export class StudentManager {
     return { success: true, wasSaved: wasSaved };
   }
 
-  // --- NEW BINARY SEARCH IMPLEMENTATION ---
   private binarySearchFindIndex(studentToFind: Student): number {
     let low = 0;
     let high = this.students.length - 1;
@@ -317,10 +161,7 @@ export class StudentManager {
         student.isSavedToDisk = true;
       }
     }
-
-    // Clear the deletion tracking since we're doing a full save
     this.studentsToDelete = [];
-
     return this.students;
   }
 

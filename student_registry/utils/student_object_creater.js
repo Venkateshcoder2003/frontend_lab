@@ -1,9 +1,7 @@
 "use strict";
-// //Importing the necessary models
-// import { Student } from "../models/student";
-// import Course from "../models/course";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StudentObjectCreater = void 0;
+//Class responsible for creatig student object
 var StudentObjectCreater = /** @class */ (function () {
     function StudentObjectCreater() {
     }
@@ -14,7 +12,7 @@ var StudentObjectCreater = /** @class */ (function () {
             address: address.trim(),
             rollNumber: rollNumber,
             courses: courses,
-            isSavedToDisk: false, // New students are initially unsaved
+            isSavedToDisk: false, //New students are initially unsaved
         };
     };
     return StudentObjectCreater;

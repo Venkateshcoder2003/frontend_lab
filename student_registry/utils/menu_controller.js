@@ -1,13 +1,4 @@
 "use strict";
-// //Import required classes and utility functions
-// import { StudentManager } from "../services/student_manager";
-// import { DataSerializer } from "../services/data_serializer";
-// import { StudentObjectCreater } from "../utils/student_object_creater";
-// import { InputHandler } from "../utils/input_handler";
-// import { InputValidator } from "../utils/input_validator";
-// import { Logger } from "../utils/logger";
-// import  {choices}  from "../models/choices";
-// import { handleAdd, handleDisplay, handleDelete, handleSave, handleExit } from "./menu_actions";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,86 +37,22 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MenuController = void 0;
-// //Controller class to manage the menu and operations
-// export class MenuContoller {
-//   private studentManager: StudentManager;
-//   private studentObjectCreater: StudentObjectCreater;
-//   private dataSerializer: DataSerializer;
-//   //Constructor initializes services and loads existing student data
-//   constructor() {
-//     this.studentManager = StudentManager.getInstance();
-//     this.dataSerializer = DataSerializer.getInstance();
-//     this.studentObjectCreater = new StudentObjectCreater();
-//     this.initializeData();
-//   }
-//   //Load saved student data from disk, else set it to an empty array
-//   private initializeData() {
-//     try {
-//       const savedStudentData = this.dataSerializer.loadDataFromDisk();
-//       this.studentManager.setStudents(savedStudentData);
-//     } catch {
-//       this.studentManager.setStudents([]);
-//     }
-//   }
-//   //Displays the main menu and handles student choices in a loop
-//   async showMenu(): Promise<void> {
-//     let isRunning = true;
-//     while (true) {
-//       Logger.print("\n\n----- MENU -----");
-//       Logger.print("1. Add Students");
-//       Logger.print("2. Display Students");
-//       Logger.print("3. Delete Students");
-//       Logger.print("4. Save Students");
-//       Logger.print("5. Exit");
-//       //Ask student for their menu choice
-//       const choice = await InputHandler.getChoice(); //Gets student choice.
-//       //Perform action based on student's choice
-//       switch (choice) {
-//         case choices.ADD:
-//           try {
-//             await handleAdd();
-//           } catch (error) {
-//             Logger.error(`${error.message}`);
-//           }
-//           break;
-//         case choices.DISPLAY:
-//           try {
-//             await handleDisplay();
-//           } catch (error) {
-//             Logger.error(`${error.message}`);
-//           }
-//           break;
-//         case choices.DELETE:
-//           await handleDelete();
-//           break;
-//         case choices.SAVE:
-//           await handleSave();
-//           break;
-//         case choices.EXIT:
-//           handleExit();
-//           isRunning = false;
-//           return;
-//         default:
-//           Logger.info("Invalid choice. Please try again."); //If student enters invalid option
-//       }
-//     }
-//   }
-// }
+//Import all necessary services, utilities, and handlers
 var student_manager_1 = require("../services/student_manager");
 var data_serializer_1 = require("../services/data_serializer");
-var student_object_creater_1 = require("../utils/student_object_creater");
 var input_handler_1 = require("../utils/input_handler");
 var logger_1 = require("../utils/logger");
 var choices_1 = require("../models/choices");
 var menu_actions_1 = require("./menu_actions");
+//It's responsible for initializing the necessary services, displaying the Main menu
 var MenuController = /** @class */ (function () {
+    //It's responsible for getting the singleton instances of our serviceand loading the initial data from the disk.
     function MenuController() {
         this.studentManager = student_manager_1.StudentManager.getInstance();
         this.dataSerializer = data_serializer_1.DataSerializer.getInstance();
-        this.studentObjectCreater = new student_object_creater_1.StudentObjectCreater();
         this.initializeData();
     }
-    // Load all disk data into memory at startup
+    //Loads student data from the JSON file on disk when the application starts
     MenuController.prototype.initializeData = function () {
         try {
             var savedStudentData = this.dataSerializer.loadDataFromDisk();
@@ -136,13 +63,17 @@ var MenuController = /** @class */ (function () {
             this.studentManager.initializeFromDisk([]);
         }
     };
+    //The main application loop. It continuously displays the menu
     MenuController.prototype.showMenu = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var choice, _a, error_1, error_2, error_3, error_4;
+            var isRunning, choice, _a, error_1, error_2, error_3, error_4;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        if (!true) return [3 /*break*/, 22];
+                        isRunning = true;
+                        _b.label = 1;
+                    case 1:
+                        if (!isRunning) return [3 /*break*/, 23];
                         logger_1.Logger.print("\n\n========== STUDENT REGISTRY MENU ==========");
                         logger_1.Logger.print("1. Add Student");
                         logger_1.Logger.print("2. Display Students");
@@ -151,70 +82,72 @@ var MenuController = /** @class */ (function () {
                         logger_1.Logger.print("5. Exit");
                         logger_1.Logger.print("==========================================");
                         return [4 /*yield*/, input_handler_1.InputHandler.getChoice()];
-                    case 1:
+                    case 2:
                         choice = _b.sent();
                         _a = choice;
                         switch (_a) {
-                            case choices_1.choices.ADD: return [3 /*break*/, 2];
-                            case choices_1.choices.DISPLAY: return [3 /*break*/, 6];
-                            case choices_1.choices.DELETE: return [3 /*break*/, 10];
-                            case choices_1.choices.SAVE: return [3 /*break*/, 14];
-                            case choices_1.choices.EXIT: return [3 /*break*/, 18];
+                            case choices_1.choices.ADD: return [3 /*break*/, 3];
+                            case choices_1.choices.DISPLAY: return [3 /*break*/, 7];
+                            case choices_1.choices.DELETE: return [3 /*break*/, 11];
+                            case choices_1.choices.SAVE: return [3 /*break*/, 15];
+                            case choices_1.choices.EXIT: return [3 /*break*/, 19];
                         }
-                        return [3 /*break*/, 20];
-                    case 2:
-                        _b.trys.push([2, 4, , 5]);
-                        return [4 /*yield*/, (0, menu_actions_1.handleAdd)()];
+                        return [3 /*break*/, 21];
                     case 3:
-                        _b.sent();
-                        return [3 /*break*/, 5];
+                        _b.trys.push([3, 5, , 6]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleAdd)()];
                     case 4:
+                        _b.sent();
+                        return [3 /*break*/, 6];
+                    case 5:
                         error_1 = _b.sent();
                         logger_1.Logger.error("Error adding student: ".concat(error_1.message));
-                        return [3 /*break*/, 5];
-                    case 5: return [3 /*break*/, 21];
-                    case 6:
-                        _b.trys.push([6, 8, , 9]);
-                        return [4 /*yield*/, (0, menu_actions_1.handleDisplay)()];
+                        return [3 /*break*/, 6];
+                    case 6: return [3 /*break*/, 22];
                     case 7:
-                        _b.sent();
-                        return [3 /*break*/, 9];
+                        _b.trys.push([7, 9, , 10]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleDisplay)()];
                     case 8:
+                        _b.sent();
+                        return [3 /*break*/, 10];
+                    case 9:
                         error_2 = _b.sent();
                         logger_1.Logger.error("Error displaying students: ".concat(error_2.message));
-                        return [3 /*break*/, 9];
-                    case 9: return [3 /*break*/, 21];
-                    case 10:
-                        _b.trys.push([10, 12, , 13]);
-                        return [4 /*yield*/, (0, menu_actions_1.handleDelete)()];
+                        return [3 /*break*/, 10];
+                    case 10: return [3 /*break*/, 22];
                     case 11:
-                        _b.sent();
-                        return [3 /*break*/, 13];
+                        _b.trys.push([11, 13, , 14]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleDelete)()];
                     case 12:
+                        _b.sent();
+                        return [3 /*break*/, 14];
+                    case 13:
                         error_3 = _b.sent();
                         logger_1.Logger.error("Error deleting student: ".concat(error_3.message));
-                        return [3 /*break*/, 13];
-                    case 13: return [3 /*break*/, 21];
-                    case 14:
-                        _b.trys.push([14, 16, , 17]);
-                        return [4 /*yield*/, (0, menu_actions_1.handleSave)()];
+                        return [3 /*break*/, 14];
+                    case 14: return [3 /*break*/, 22];
                     case 15:
-                        _b.sent();
-                        return [3 /*break*/, 17];
+                        _b.trys.push([15, 17, , 18]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleSave)()];
                     case 16:
+                        _b.sent();
+                        return [3 /*break*/, 18];
+                    case 17:
                         error_4 = _b.sent();
                         logger_1.Logger.error("Error saving students: ".concat(error_4.message));
-                        return [3 /*break*/, 17];
-                    case 17: return [3 /*break*/, 21];
-                    case 18: return [4 /*yield*/, (0, menu_actions_1.handleExit)()];
-                    case 19:
-                        _b.sent();
-                        return [2 /*return*/];
+                        return [3 /*break*/, 18];
+                    case 18: return [3 /*break*/, 22];
+                    case 19: return [4 /*yield*/, (0, menu_actions_1.handleExit)()];
                     case 20:
+                        _b.sent();
+                        //Set the flag to false to terminate the while loop
+                        isRunning = false;
+                        return [2 /*return*/];
+                    case 21:
                         logger_1.Logger.info("Invalid choice. Please select 1-5.");
-                        _b.label = 21;
-                    case 21: return [3 /*break*/, 0];
-                    case 22: return [2 /*return*/];
+                        _b.label = 22;
+                    case 22: return [3 /*break*/, 1];
+                    case 23: return [2 /*return*/];
                 }
             });
         });

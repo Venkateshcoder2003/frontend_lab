@@ -1,7 +1,4 @@
 "use strict";
-// import { Student } from "../models/student"; //Import Student interface
-// import { Logger } from "../utils/logger"; //import Logger
-// import Course from "../models/course"; //Import Course enum
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -14,10 +11,14 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StudentManager = void 0;
 var logger_1 = require("../utils/logger");
+//Uses the Singleton pattern to ensure only one instance exists
 var StudentManager = /** @class */ (function () {
     function StudentManager() {
+        //The main array of students, always kept sorted by name
         this.students = [];
-        this.studentsToDelete = []; // Track deleted saved students for disk cleanup
+        //Tracks students that were saved but are now deleted from memory
+        this.studentsToDelete = [];
+        //A Map for instant lookups by roll number (for performance)
         this.studentsByRoll = new Map();
     }
     StudentManager.getInstance = function () {
@@ -35,6 +36,17 @@ var StudentManager = /** @class */ (function () {
             this.studentsByRoll.set(student.rollNumber, student);
         }
         logger_1.Logger.info("Loaded ".concat(studentsFromDisk.length, " students from disk into memory."));
+    };
+    StudentManager.prototype.maintainSortOrder = function () {
+        this.students.sort(this.compareStudents);
+    };
+    // Compare function for sorting (by fullName, then by rollNumber)
+    StudentManager.prototype.compareStudents = function (a, b) {
+        if (a.fullName < b.fullName)
+            return -1;
+        if (a.fullName > b.fullName)
+            return 1;
+        return a.rollNumber - b.rollNumber;
     };
     StudentManager.prototype.getStudents = function () {
         return this.students;
@@ -59,7 +71,7 @@ var StudentManager = /** @class */ (function () {
         logger_1.Logger.log(student);
         return false; // Success
     };
-    // Optimized insertion maintaining sort order
+    //Optimized insertion maintaining sort order
     StudentManager.prototype.insertStudentSorted = function (newStudent) {
         var left = 0;
         var right = this.students.length;
@@ -75,40 +87,6 @@ var StudentManager = /** @class */ (function () {
         }
         this.students.splice(left, 0, newStudent);
     };
-    // Compare function for sorting (by fullName, then by rollNumber)
-    StudentManager.prototype.compareStudents = function (a, b) {
-        if (a.fullName < b.fullName)
-            return -1;
-        if (a.fullName > b.fullName)
-            return 1;
-        return a.rollNumber - b.rollNumber;
-    };
-    StudentManager.prototype.maintainSortOrder = function () {
-        this.students.sort(this.compareStudents);
-    };
-    // Optimized deletion with disk cleanup tracking
-    // deleteStudent(rollNumber: number): { success: boolean; wasSaved: boolean } {
-    //   const index = this.findStudentIndex(rollNumber);
-    //   if (index !== -1) {
-    //     const studentToDelete = this.students[index];
-    //     const wasSaved = studentToDelete.isSavedToDisk;
-    //     // If student was saved to disk, track it for deletion during save
-    //     if (wasSaved) {
-    //       this.studentsToDelete.push(studentToDelete);
-    //     }
-    //     this.students.splice(index, 1);
-    //     return { success: true, wasSaved };
-    //   }
-    //   return { success: false, wasSaved: false };
-    // }
-    // private findStudentIndex(rollNumber: number): number {
-    //   for (let i = 0; i < this.students.length; i++) {
-    //     if (this.students[i].rollNumber === rollNumber) {
-    //       return i;
-    //     }
-    //   }
-    //   return -1;
-    // }
     StudentManager.prototype.deleteStudent = function (rollNumber) {
         // Step 1: Use the Map for an instant lookup.
         var studentToDelete = this.studentsByRoll.get(rollNumber);
@@ -119,6 +97,9 @@ var StudentManager = /** @class */ (function () {
         // Capture the save status BEFORE deleting the student.
         // This assumes the Student model has an 'isSavedToDisk' property.
         var wasSaved = studentToDelete.isSavedToDisk || false;
+        if (wasSaved) {
+            this.studentsToDelete.push(studentToDelete);
+        }
         // Step 2: Use binary search to find the student's index in the sorted array.
         var index = this.binarySearchFindIndex(studentToDelete);
         if (index === -1) {
@@ -132,7 +113,6 @@ var StudentManager = /** @class */ (function () {
         // Return success along with whether the deleted student had been saved.
         return { success: true, wasSaved: wasSaved };
     };
-    // --- NEW BINARY SEARCH IMPLEMENTATION ---
     StudentManager.prototype.binarySearchFindIndex = function (studentToFind) {
         var low = 0;
         var high = this.students.length - 1;
@@ -165,7 +145,6 @@ var StudentManager = /** @class */ (function () {
                 student.isSavedToDisk = true;
             }
         }
-        // Clear the deletion tracking since we're doing a full save
         this.studentsToDelete = [];
         return this.students;
     };
