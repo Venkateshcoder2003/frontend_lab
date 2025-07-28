@@ -37,25 +37,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputHandler = void 0;
-//Import required modules
-var readline = require("readline");
+var ask_query_1 = require("./ask_query");
 //Class responsible for handling all student inputs via command-line interface
 var InputHandler = /** @class */ (function () {
     function InputHandler() {
     }
-    //Asks a query and returns the student input
-    InputHandler.askQuery = function (query) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2 /*return*/, new Promise(function (resolve) {
-                        _this.rl.question(query, function (studentInput) {
-                            resolve(studentInput.trim());
-                        });
-                    })];
-            });
-        });
-    };
     //Collects and returns all student details(name, age, address, roll number, courses)
     InputHandler.getStudentInput = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -65,23 +51,23 @@ var InputHandler = /** @class */ (function () {
                     case 0:
                         studentInput = {};
                         _a = studentInput;
-                        return [4 /*yield*/, this.askQuery("Enter Name: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter Name: ")];
                     case 1:
                         _a.fullName = _f.sent();
                         _b = studentInput;
-                        return [4 /*yield*/, this.askQuery("Enter Age: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter Age: ")];
                     case 2:
                         _b.age = _f.sent();
                         _c = studentInput;
-                        return [4 /*yield*/, this.askQuery("Enter Address: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter Address: ")];
                     case 3:
                         _c.address = _f.sent();
                         _d = studentInput;
-                        return [4 /*yield*/, this.askQuery("Enter Your Roll Number: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter Your Roll Number: ")];
                     case 4:
                         _d.rollNumber = _f.sent();
                         _e = studentInput;
-                        return [4 /*yield*/, this.askQuery("Enter your Courses A-F (Comma Separated): ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter your Courses A-F (Comma Separated): ")];
                     case 5:
                         _e.courses = _f.sent();
                         return [2 /*return*/, studentInput];
@@ -95,7 +81,7 @@ var InputHandler = /** @class */ (function () {
             var input;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.askQuery("Enter Your Choice(1-5): ")];
+                    case 0: return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Enter Your Choice(1-5): ")];
                     case 1:
                         input = _a.sent();
                         return [2 /*return*/, parseInt(input)];
@@ -107,7 +93,7 @@ var InputHandler = /** @class */ (function () {
     InputHandler.getSortField = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.askQuery("Enter the field to sort by (rollNumber/age/name/address): ")];
+                return [2 /*return*/, ask_query_1.AskQuery.askQuery("Enter the field to sort by (rollNumber/age/name/address): ")];
             });
         });
     };
@@ -115,7 +101,7 @@ var InputHandler = /** @class */ (function () {
     InputHandler.getSortType = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.askQuery("Enter the Sorting Type (asc/desc): ")];
+                return [2 /*return*/, ask_query_1.AskQuery.askQuery("Enter the Sorting Type (asc/desc): ")];
             });
         });
     };
@@ -125,7 +111,7 @@ var InputHandler = /** @class */ (function () {
             var input, choice;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.askQuery(question)];
+                    case 0: return [4 /*yield*/, ask_query_1.AskQuery.askQuery(question)];
                     case 1:
                         input = _a.sent();
                         choice = input.toLowerCase();
@@ -140,7 +126,7 @@ var InputHandler = /** @class */ (function () {
             var input;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.askQuery(question)];
+                    case 0: return [4 /*yield*/, ask_query_1.AskQuery.askQuery(question)];
                     case 1:
                         input = _a.sent();
                         return [2 /*return*/, parseInt(input)];
@@ -148,14 +134,6 @@ var InputHandler = /** @class */ (function () {
             });
         });
     };
-    //Closes the readline interface to end input
-    InputHandler.close = function () {
-        this.rl.close();
-    };
-    InputHandler.rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
     return InputHandler;
 }());
 exports.InputHandler = InputHandler;

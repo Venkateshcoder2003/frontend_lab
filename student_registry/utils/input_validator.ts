@@ -1,7 +1,8 @@
 //Import required modules and interfaces
 import Course from "../models/course";
-import { InputHandler, StudentInputData } from "./input_handler";
+import { StudentInputData } from "./input_handler";
 import { Logger } from "./logger";
+import { AskQuery } from "./ask_query";
 
 //Interface to represent validated student data after all input validations
 export interface ValidatedStudentData {
@@ -49,7 +50,7 @@ export class InputValidator {
 
     while (!validatedData.fullName) {
       Logger.info("Invalid name. Please enter a valid name.");
-      const newInput = await InputHandler.askQuery("Re-enter Name: ");
+      const newInput = await AskQuery.askQuery("Re-enter Name: ");
       const trimmedName = newInput.trim();
       if (trimmedName.length > 0) {
         validatedData.fullName = trimmedName;
@@ -70,7 +71,7 @@ export class InputValidator {
 
     while (validatedData.age === undefined) {
       Logger.info("Invalid age. Please enter a valid age (0 or greater).");
-      const newInput = await InputHandler.askQuery("Re-enter Age: ");
+      const newInput = await AskQuery.askQuery("Re-enter Age: ");
       const newAge = parseInt(newInput.trim());
       if (newAge >= 0 && !isNaN(newAge)) {
         validatedData.age = newAge;
@@ -91,7 +92,7 @@ export class InputValidator {
 
     while (!validatedData.address) {
       Logger.info("Invalid address. Please enter a valid address.");
-      const newInput = await InputHandler.askQuery("Re-enter Address: ");
+      const newInput = await AskQuery.askQuery("Re-enter Address: ");
       const trimmedAddress = newInput.trim();
       if (trimmedAddress.length > 0) {
         validatedData.address = trimmedAddress;
@@ -114,7 +115,7 @@ export class InputValidator {
       Logger.info(
         "Invalid roll number. Please enter a valid roll number (0 or greater)."
       );
-      const newInput = await InputHandler.askQuery("Re-enter Roll Number: ");
+      const newInput = await AskQuery.askQuery("Re-enter Roll Number: ");
       const newRollNumber = parseInt(newInput.trim());
       if (newRollNumber >= 0 && !isNaN(newRollNumber)) {
         validatedData.rollNumber = newRollNumber;
@@ -151,7 +152,7 @@ export class InputValidator {
 
     //Invalid - ask for re-input
     while (!validatedData.courses) {
-      const newInput = await InputHandler.askQuery(
+      const newInput = await AskQuery.askQuery(
         "Re-enter Courses A-F (Comma Separated): "
       );
       const newCoursesResult = this.processCoursesInput(newInput);
@@ -162,18 +163,13 @@ export class InputValidator {
   }
 
   static processCoursesInput(input: string): Course[] | null {
-    const inputCourses: string[] = [];
-    const parts = input.split(",");
+    //Converting student input to uppercase and removing leading and trailing spaces
+    const inputCourses = input
+      .split(",")
+      .map((course) => course.trim().toUpperCase())
+      .filter((course) => course !== ""); //Remove any empty strings from "a,,b"
 
-    // Converting student input to uppercase and removing leading and trailing spaces
-    for (let i = 0; i < parts.length; i++) {
-      const toUpper = parts[i].trim().toUpperCase();
-      if (toUpper) {
-        inputCourses.push(toUpper);
-      }
-    }
-
-    //Number of courses should be 4 
+    //Check for the correct number of courses
     if (inputCourses.length !== 4) {
       Logger.info(
         `Error: You must enter exactly 4 courses. You entered ${inputCourses.length}.`
@@ -181,55 +177,29 @@ export class InputValidator {
       return null;
     }
 
-    const validCourses = Object.keys(Course);
-    let allValid = true;
-
-    //Validating courses are valid or Not
-    for (let i = 0; i < inputCourses.length; i++) {
-      let isValid = false;
-      for (let j = 0; j < validCourses.length; j++) {
-        if (inputCourses[i] === validCourses[j]) {
-          isValid = true;
-          break;
-        }
-      }
-
-      if (isValid == false) {
-        Logger.info(
-          `The course '${inputCourses[i]}' is not valid. Please choose between A-F`
-        );
-        allValid = false;
-        break;
-      }
-    }
-
-    //Checking for duplicates
-    if (allValid) {
-      for (let i = 0; i < inputCourses.length; i++) {
-        for (let j = i + 1; j < inputCourses.length; j++) {
-          if (inputCourses[i] === inputCourses[j]) {
-            Logger.info(
-              `Duplicate course found: '${inputCourses[i]}'. Please enter unique courses.`
-            );
-            allValid = false;
-            break;
-          }
-        }
-        if (!allValid) break;
-      }
-    }
-
-    //If all valid then return the input courses
-    if (allValid) {
-      const courseEnum: Course[] = [];
-      for (let i = 0; i < inputCourses.length; i++) {
-        courseEnum.push(inputCourses[i] as Course);
-      }
-      return courseEnum;
-    } else {
-      Logger.info("Please Try Again");
+    //Check for duplicates using a Set. A Set can only have unique values
+    //If the Set size is different from the array length, there were duplicates
+    const uniqueCourses = new Set(inputCourses);
+    if (uniqueCourses.size !== inputCourses.length) {
+      Logger.info("Duplicate courses found. Please enter unique courses.");
       return null;
     }
+
+    //Check if every entered course is a valid course from the enum.
+    const validCourses = Object.keys(Course);
+    const allCoursesAreValid = inputCourses.every((course) =>
+      validCourses.includes(course)
+    );
+
+    if (!allCoursesAreValid) {
+      Logger.info(
+        "Invalid course found. Please choose from A-F and try again."
+      );
+      return null;
+    }
+
+    // If all checks pass, return the validated courses.
+    return inputCourses as Course[];
   }
 
   //Validate student choice

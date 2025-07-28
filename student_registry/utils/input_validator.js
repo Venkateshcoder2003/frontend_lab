@@ -39,8 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputValidator = void 0;
 //Import required modules and interfaces
 var course_1 = require("../models/course");
-var input_handler_1 = require("./input_handler");
 var logger_1 = require("./logger");
+var ask_query_1 = require("./ask_query");
 //Class responsible for validating student input
 var InputValidator = /** @class */ (function () {
     function InputValidator() {
@@ -89,7 +89,7 @@ var InputValidator = /** @class */ (function () {
                     case 1:
                         if (!!validatedData.fullName) return [3 /*break*/, 3];
                         logger_1.Logger.info("Invalid name. Please enter a valid name.");
-                        return [4 /*yield*/, input_handler_1.InputHandler.askQuery("Re-enter Name: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Re-enter Name: ")];
                     case 2:
                         newInput = _a.sent();
                         trimmedName = newInput.trim();
@@ -118,7 +118,7 @@ var InputValidator = /** @class */ (function () {
                     case 1:
                         if (!(validatedData.age === undefined)) return [3 /*break*/, 3];
                         logger_1.Logger.info("Invalid age. Please enter a valid age (0 or greater).");
-                        return [4 /*yield*/, input_handler_1.InputHandler.askQuery("Re-enter Age: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Re-enter Age: ")];
                     case 2:
                         newInput = _a.sent();
                         newAge = parseInt(newInput.trim());
@@ -147,7 +147,7 @@ var InputValidator = /** @class */ (function () {
                     case 1:
                         if (!!validatedData.address) return [3 /*break*/, 3];
                         logger_1.Logger.info("Invalid address. Please enter a valid address.");
-                        return [4 /*yield*/, input_handler_1.InputHandler.askQuery("Re-enter Address: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Re-enter Address: ")];
                     case 2:
                         newInput = _a.sent();
                         trimmedAddress = newInput.trim();
@@ -176,7 +176,7 @@ var InputValidator = /** @class */ (function () {
                     case 1:
                         if (!(validatedData.rollNumber === undefined)) return [3 /*break*/, 3];
                         logger_1.Logger.info("Invalid roll number. Please enter a valid roll number (0 or greater).");
-                        return [4 /*yield*/, input_handler_1.InputHandler.askQuery("Re-enter Roll Number: ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Re-enter Roll Number: ")];
                     case 2:
                         newInput = _a.sent();
                         newRollNumber = parseInt(newInput.trim());
@@ -218,7 +218,7 @@ var InputValidator = /** @class */ (function () {
                         _a.label = 1;
                     case 1:
                         if (!!validatedData.courses) return [3 /*break*/, 3];
-                        return [4 /*yield*/, input_handler_1.InputHandler.askQuery("Re-enter Courses A-F (Comma Separated): ")];
+                        return [4 /*yield*/, ask_query_1.AskQuery.askQuery("Re-enter Courses A-F (Comma Separated): ")];
                     case 2:
                         newInput = _a.sent();
                         newCoursesResult = this.processCoursesInput(newInput);
@@ -232,63 +232,34 @@ var InputValidator = /** @class */ (function () {
         });
     };
     InputValidator.processCoursesInput = function (input) {
-        var inputCourses = [];
-        var parts = input.split(",");
-        // Converting student input to uppercase and removing leading and trailing spaces
-        for (var i = 0; i < parts.length; i++) {
-            var toUpper = parts[i].trim().toUpperCase();
-            if (toUpper) {
-                inputCourses.push(toUpper);
-            }
-        }
-        //Number of courses should be 4 
+        //Converting student input to uppercase and removing leading and trailing spaces
+        var inputCourses = input
+            .split(",")
+            .map(function (course) { return course.trim().toUpperCase(); })
+            .filter(function (course) { return course !== ""; }); //Remove any empty strings from "a,,b"
+        //Check for the correct number of courses
         if (inputCourses.length !== 4) {
             logger_1.Logger.info("Error: You must enter exactly 4 courses. You entered ".concat(inputCourses.length, "."));
             return null;
         }
-        var validCourses = Object.keys(course_1.default);
-        var allValid = true;
-        //Validating courses are valid or Not
-        for (var i = 0; i < inputCourses.length; i++) {
-            var isValid = false;
-            for (var j = 0; j < validCourses.length; j++) {
-                if (inputCourses[i] === validCourses[j]) {
-                    isValid = true;
-                    break;
-                }
-            }
-            if (isValid == false) {
-                logger_1.Logger.info("The course '".concat(inputCourses[i], "' is not valid. Please choose between A-F"));
-                allValid = false;
-                break;
-            }
-        }
-        //Checking for duplicates
-        if (allValid) {
-            for (var i = 0; i < inputCourses.length; i++) {
-                for (var j = i + 1; j < inputCourses.length; j++) {
-                    if (inputCourses[i] === inputCourses[j]) {
-                        logger_1.Logger.info("Duplicate course found: '".concat(inputCourses[i], "'. Please enter unique courses."));
-                        allValid = false;
-                        break;
-                    }
-                }
-                if (!allValid)
-                    break;
-            }
-        }
-        //If all valid then return the input courses
-        if (allValid) {
-            var courseEnum = [];
-            for (var i = 0; i < inputCourses.length; i++) {
-                courseEnum.push(inputCourses[i]);
-            }
-            return courseEnum;
-        }
-        else {
-            logger_1.Logger.info("Please Try Again");
+        //Check for duplicates using a Set. A Set can only have unique values
+        //If the Set size is different from the array length, there were duplicates
+        var uniqueCourses = new Set(inputCourses);
+        if (uniqueCourses.size !== inputCourses.length) {
+            logger_1.Logger.info("Duplicate courses found. Please enter unique courses.");
             return null;
         }
+        //Check if every entered course is a valid course from the enum.
+        var validCourses = Object.keys(course_1.default);
+        var allCoursesAreValid = inputCourses.every(function (course) {
+            return validCourses.includes(course);
+        });
+        if (!allCoursesAreValid) {
+            logger_1.Logger.info("Invalid course found. Please choose from A-F and try again.");
+            return null;
+        }
+        // If all checks pass, return the validated courses.
+        return inputCourses;
     };
     //Validate student choice
     InputValidator.validateChoice = function (input) {
