@@ -1,4 +1,12 @@
 "use strict";
+// import { StudentManager } from "../services/student_manager";
+// import { DataSerializer } from "../services/data_serializer";
+// import { StudentObjectCreater } from "../utils/student_object_creater";
+// import { InputHandler } from "../utils/input_handler";
+// import { InputValidator } from "../utils/input_validator";
+// import { Logger } from "../utils/logger";
+// import { choices } from "../models/choices";
+// import { AskQuery } from "./ask_query";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -41,16 +49,138 @@ exports.handleDisplay = handleDisplay;
 exports.handleDelete = handleDelete;
 exports.handleSave = handleSave;
 exports.handleExit = handleExit;
+// const studentManager = StudentManager.getInstance();
+// const dataSerializer = DataSerializer.getInstance();
+// const studentObjectCreater = new StudentObjectCreater();
+// //Handles logic for adding a new student
+// export async function handleAdd(): Promise<void> {
+//   const studentInput = await InputHandler.getStudentInput(); //Get student Input
+//   const validatedData = await InputValidator.validateAndGetStudentData(studentInput); //Validates student input
+//   //Creates student object
+//   const student = studentObjectCreater.createStudent(
+//     validatedData.fullName,
+//     validatedData.age,
+//     validatedData.address,
+//     validatedData.rollNumber,
+//     validatedData.courses
+//   );
+//   //Add student to list, if successful then save data to disk
+//   const addResult = studentManager.addStudent(student);
+//   if (!addResult) {
+//     dataSerializer.saveDataToDisk(studentManager.getStudents());
+//     Logger.info("Student Added Successfully");
+//     Logger.log(student);
+//   }
+// }
+// /**
+//  *Handles display of all student data.
+//  * If custom sort is selected, asks for sort field and type
+//  * Otherwise, shows default sorting (by name and roll number)
+//  */
+// export async function handleDisplay(): Promise<void> {
+//   const wantCustomSort = await InputHandler.getYesNoInput(
+//     "Do you want to sort on data: "
+//   );
+//   if (wantCustomSort) {
+//     const studentsFromFile = dataSerializer.loadDataFromDisk();
+//     if (studentsFromFile.length === 0) {
+//       Logger.info("No Student Records found in the database.");
+//       return;
+//     }
+//     //Get and validate field and type of sort
+//     const sortFieldInput = await InputHandler.getSortField();
+//     const sortFieldValidation =
+//       InputValidator.validateSortField(sortFieldInput);
+//     if (!sortFieldValidation.isValid) {
+//       Logger.error(sortFieldValidation.error!);
+//       return;
+//     }
+//     const sortTypeInput = await InputHandler.getSortType();
+//     const sortTypeValidation = InputValidator.validateSortType(sortTypeInput);
+//     if (!sortTypeValidation.isValid) {
+//       Logger.error(sortTypeValidation.error!);
+//       return;
+//     }
+//     //Perform custom sort and display students
+//     studentManager.sortStudentsBy(
+//       sortFieldValidation.value!,
+//       sortTypeValidation.value!
+//     );
+//     Logger.info(
+//       `Sorted by ${sortFieldValidation.value} in ${sortTypeValidation.value}.`
+//     );
+//     studentManager.displayStudents();
+//   } else {
+//     const studentsFromFile = dataSerializer.loadDataFromDisk();
+//     if (studentsFromFile.length === 0) {
+//       Logger.info("No Student Records found in the database.");
+//       return;
+//     }
+//     Logger.info(
+//       "Displaying student data sorted in ascending order by Full Name and then by Roll Number."
+//     );
+//     studentManager.setStudents(studentsFromFile);
+//     studentManager.displayStudents();
+//   }
+// }
+// //Handles deletion of a student by roll number
+// export async function handleDelete(): Promise<void> {
+//   const rollNumberInput = await InputHandler.getRollNumberForDelete(
+//     "Enter Roll Number to Delete: "
+//   );
+//   const rollNumberValidation = InputValidator.validateRollNumberForDelete(
+//     rollNumberInput.toString()
+//   );
+//   if (!rollNumberValidation.isValid) {
+//     Logger.error(rollNumberValidation.error!);
+//     return;
+//   }
+//   studentManager.sortStudentsBy();
+//   const deleted = studentManager.deleteStudent(rollNumberValidation.value!);
+//   dataSerializer.saveDataToDisk(studentManager.getStudents());
+//   if (deleted) {
+//     Logger.info(
+//       `Student With Roll Number ${rollNumberValidation.value} Deleted Successfully`
+//     );
+//     studentManager.displayStudents();
+//   } else {
+//     Logger.info(
+//       `Student data with roll number ${rollNumberValidation.value} is Not Present`
+//     );
+//   }
+// }
+// //Handles saving all current student data to disk
+// export async function handleSave(): Promise<void> {
+//   studentManager.sortStudentsBy();
+//   dataSerializer.saveDataToDisk(studentManager.getStudents());
+//   Logger.info("Student data Updated in Student Registry");
+// }
+// /**
+//  *Handles clean exit from the application.
+//  *  Asks whether to save data before exiting
+//  *  Saves if needed
+//  *  Closes input stream
+//  */
+// export async function handleExit(): Promise<void> {
+//   const save = await InputHandler.getYesNoInput(
+//     "Do You Want To Save Data Before Exit: "
+//   );
+//   if (save) {
+//     dataSerializer.saveDataToDisk(studentManager.getStudents());
+//     Logger.info("Student Data saved.");
+//   }
+//   AskQuery.close();
+// }
 var student_manager_1 = require("../services/student_manager");
 var data_serializer_1 = require("../services/data_serializer");
 var student_object_creater_1 = require("../utils/student_object_creater");
 var input_handler_1 = require("../utils/input_handler");
 var input_validator_1 = require("../utils/input_validator");
 var logger_1 = require("../utils/logger");
+var ask_query_1 = require("./ask_query");
 var studentManager = student_manager_1.StudentManager.getInstance();
 var dataSerializer = data_serializer_1.DataSerializer.getInstance();
-var studentFactory = new student_object_creater_1.StudentFactory();
-//Handles logic for adding a new student
+var studentObjectCreater = new student_object_creater_1.StudentObjectCreater();
 function handleAdd() {
     return __awaiter(this, void 0, void 0, function () {
         var studentInput, validatedData, student, addResult;
@@ -62,35 +192,28 @@ function handleAdd() {
                     return [4 /*yield*/, input_validator_1.InputValidator.validateAndGetStudentData(studentInput)];
                 case 2:
                     validatedData = _a.sent();
-                    student = studentFactory.createStudent(validatedData.fullName, validatedData.age, validatedData.address, validatedData.rollNumber, validatedData.courses);
+                    student = studentObjectCreater.createStudent(validatedData.fullName, validatedData.age, validatedData.address, validatedData.rollNumber, validatedData.courses);
                     addResult = studentManager.addStudent(student);
                     if (!addResult) {
-                        dataSerializer.saveDataToDisk(studentManager.getStudents());
-                        logger_1.Logger.info("Student Added Successfully");
-                        logger_1.Logger.log(student);
+                        logger_1.Logger.info("\nCurrent Students in Memory:");
+                        studentManager.displayStudents();
                     }
                     return [2 /*return*/];
             }
         });
     });
 }
-/**
- *Handles display of all student data.
- * If custom sort is selected, asks for sort field and type
- * Otherwise, shows default sorting (by name and roll number)
- */
 function handleDisplay() {
     return __awaiter(this, void 0, void 0, function () {
-        var wantCustomSort, studentsFromFile, sortFieldInput, sortFieldValidation, sortTypeInput, sortTypeValidation, studentsFromFile;
+        var wantCustomSort, sortFieldInput, sortFieldValidation, sortTypeInput, sortTypeValidation;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, input_handler_1.InputHandler.getYesNoInput("Do you want to sort on data: ")];
+                case 0: return [4 /*yield*/, input_handler_1.InputHandler.getYesNoInput("Do you want to sort the data: ")];
                 case 1:
                     wantCustomSort = _a.sent();
                     if (!wantCustomSort) return [3 /*break*/, 4];
-                    studentsFromFile = dataSerializer.loadDataFromDisk();
-                    if (studentsFromFile.length === 0) {
-                        logger_1.Logger.info("No Student Records found in the database.");
+                    if (studentManager.getStudents().length === 0) {
+                        logger_1.Logger.info("No Student Records found.");
                         return [2 /*return*/];
                     }
                     return [4 /*yield*/, input_handler_1.InputHandler.getSortField()];
@@ -109,30 +232,23 @@ function handleDisplay() {
                         logger_1.Logger.error(sortTypeValidation.error);
                         return [2 /*return*/];
                     }
-                    //Perform custom sort and display students
                     studentManager.sortStudentsBy(sortFieldValidation.value, sortTypeValidation.value);
-                    logger_1.Logger.info("Sorted by ".concat(sortFieldValidation.value, " in ").concat(sortTypeValidation.value, "."));
-                    studentManager.displayStudents();
+                    logger_1.Logger.info("Sorted by ".concat(sortFieldValidation.value, " in ").concat(sortTypeValidation.value, " order."));
                     return [3 /*break*/, 5];
                 case 4:
-                    studentsFromFile = dataSerializer.loadDataFromDisk();
-                    if (studentsFromFile.length === 0) {
-                        logger_1.Logger.info("No Student Records found in the database.");
-                        return [2 /*return*/];
-                    }
-                    logger_1.Logger.info("Here is your data with default Sorting By Name and Roll Number: ");
-                    studentManager.setStudents(studentsFromFile);
-                    studentManager.displayStudents();
+                    logger_1.Logger.info("Displaying all students (default sort by name, then roll number):");
+                    studentManager.sortStudentsBy("fullName", "asc");
                     _a.label = 5;
-                case 5: return [2 /*return*/];
+                case 5:
+                    studentManager.displayStudents();
+                    return [2 /*return*/];
             }
         });
     });
 }
-//Handles deletion of a student by roll number
 function handleDelete() {
     return __awaiter(this, void 0, void 0, function () {
-        var rollNumberInput, rollNumberValidation, deleted;
+        var rollNumberInput, rollNumberValidation, deleteResult;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, input_handler_1.InputHandler.getRollNumberForDelete("Enter Roll Number to Delete: ")];
@@ -143,51 +259,68 @@ function handleDelete() {
                         logger_1.Logger.error(rollNumberValidation.error);
                         return [2 /*return*/];
                     }
-                    studentManager.sortStudentsBy();
-                    deleted = studentManager.deleteStudent(rollNumberValidation.value);
-                    dataSerializer.saveDataToDisk(studentManager.getStudents());
-                    if (deleted) {
-                        logger_1.Logger.info("Student With Roll Number ".concat(rollNumberValidation.value, " Deleted Successfully"));
+                    deleteResult = studentManager.deleteStudent(rollNumberValidation.value);
+                    if (deleteResult.success) {
+                        logger_1.Logger.info("Student with Roll Number ".concat(rollNumberValidation.value, " deleted successfully."));
+                        if (deleteResult.wasSaved) {
+                            logger_1.Logger.info("Note: This student was saved to disk. Changes will be reflected when you save.");
+                        }
+                        else {
+                            logger_1.Logger.info("Note: This student was only in memory, so no disk update needed.");
+                        }
+                        logger_1.Logger.info("\nUpdated Students in Memory:");
                         studentManager.displayStudents();
                     }
                     else {
-                        logger_1.Logger.info("Student data with roll number ".concat(rollNumberValidation.value, " is Not Present"));
+                        logger_1.Logger.info("Student with roll number ".concat(rollNumberValidation.value, " was not found."));
                     }
                     return [2 /*return*/];
             }
         });
     });
 }
-//Handles saving all current student data to disk
 function handleSave() {
     return __awaiter(this, void 0, void 0, function () {
+        var allStudents;
         return __generator(this, function (_a) {
-            studentManager.sortStudentsBy();
-            dataSerializer.saveDataToDisk(studentManager.getStudents());
-            logger_1.Logger.info("Student data Updated in Student Registry");
+            if (!studentManager.hasUnsavedChanges()) {
+                logger_1.Logger.info("No unsaved changes to save.");
+                return [2 /*return*/];
+            }
+            allStudents = studentManager.saveAllToDisk();
+            dataSerializer.saveDataToDisk(allStudents);
+            logger_1.Logger.info("All student data saved to disk successfully!");
+            logger_1.Logger.info("\nCurrent Students (all now saved to disk):");
+            studentManager.displayStudents();
             return [2 /*return*/];
         });
     });
 }
-/**
- *Handles clean exit from the application.
- *  Asks whether to save data before exiting
- *  Saves if needed
- *  Closes input stream
- */
 function handleExit() {
     return __awaiter(this, void 0, void 0, function () {
-        var save;
+        var unsavedCount, save, allStudents;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, input_handler_1.InputHandler.getYesNoInput("Do You Want To Save Data Before Exit: ")];
+                case 0:
+                    if (!studentManager.hasUnsavedChanges()) return [3 /*break*/, 2];
+                    unsavedCount = studentManager.getUnsavedStudents().length;
+                    return [4 /*yield*/, input_handler_1.InputHandler.getYesNoInput("You have ".concat(unsavedCount, " unsaved changes. Do you want to save data before exit: "))];
                 case 1:
                     save = _a.sent();
                     if (save) {
-                        dataSerializer.saveDataToDisk(studentManager.getStudents());
-                        logger_1.Logger.info("Student Data saved.");
+                        allStudents = studentManager.saveAllToDisk();
+                        dataSerializer.saveDataToDisk(allStudents);
+                        logger_1.Logger.info("Student data saved successfully.");
                     }
-                    input_handler_1.InputHandler.close();
+                    else {
+                        logger_1.Logger.info("Exiting without saving ".concat(unsavedCount, " unsaved changes."));
+                    }
+                    return [3 /*break*/, 3];
+                case 2:
+                    logger_1.Logger.info("No unsaved changes. Exiting...");
+                    _a.label = 3;
+                case 3:
+                    ask_query_1.AskQuery.close();
                     return [2 /*return*/];
             }
         });

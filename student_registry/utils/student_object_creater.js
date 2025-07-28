@@ -1,19 +1,22 @@
 "use strict";
+// //Importing the necessary models
+// import { Student } from "../models/student";
+// import Course from "../models/course";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StudentFactory = void 0;
-//Factory Class responsible for creatig student object
-var StudentFactory = /** @class */ (function () {
-    function StudentFactory() {
+exports.StudentObjectCreater = void 0;
+var StudentObjectCreater = /** @class */ (function () {
+    function StudentObjectCreater() {
     }
-    StudentFactory.prototype.createStudent = function (fullName, age, address, rollNumber, courses) {
+    StudentObjectCreater.prototype.createStudent = function (fullName, age, address, rollNumber, courses) {
         return {
             fullName: fullName.trim(),
             age: age,
             address: address.trim(),
             rollNumber: rollNumber,
             courses: courses,
+            isSavedToDisk: false, // New students are initially unsaved
         };
     };
-    return StudentFactory;
+    return StudentObjectCreater;
 }());
-exports.StudentFactory = StudentFactory;
+exports.StudentObjectCreater = StudentObjectCreater;

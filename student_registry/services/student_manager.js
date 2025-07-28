@@ -1,122 +1,227 @@
 "use strict";
+// import { Student } from "../models/student"; //Import Student interface
+// import { Logger } from "../utils/logger"; //import Logger
+// import Course from "../models/course"; //Import Course enum
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StudentManager = void 0;
-var logger_1 = require("../utils/logger"); //import Logger
+var logger_1 = require("../utils/logger");
 var StudentManager = /** @class */ (function () {
-    //Private constructor to ensure that no one creates object
     function StudentManager() {
+        this.students = [];
+        this.studentsToDelete = []; // Track deleted saved students for disk cleanup
+        this.studentsByRoll = new Map();
     }
-    //Singleton method to share single instance across entire application
     StudentManager.getInstance = function () {
         if (!StudentManager.instance) {
             StudentManager.instance = new StudentManager();
         }
         return StudentManager.instance;
     };
-    //Set students array while loading from disk
-    StudentManager.prototype.setStudents = function (student) {
-        this.students = student;
-        if (this.students.length > 1) {
-            this.sortStudentsBy();
+    // Initialize with data from disk at startup
+    StudentManager.prototype.initializeFromDisk = function (studentsFromDisk) {
+        this.students = __spreadArray([], studentsFromDisk, true);
+        this.maintainSortOrder();
+        for (var _i = 0, _a = this.students; _i < _a.length; _i++) {
+            var student = _a[_i];
+            this.studentsByRoll.set(student.rollNumber, student);
         }
+        logger_1.Logger.info("Loaded ".concat(studentsFromDisk.length, " students from disk into memory."));
     };
-    //Get list of all students
     StudentManager.prototype.getStudents = function () {
         return this.students;
     };
-    //Add new student to the list
-    StudentManager.prototype.addStudent = function (student) {
-        var exists = false;
-        for (var _i = 0, _a = this.students; _i < _a.length; _i++) {
-            var stu = _a[_i];
-            if (stu.rollNumber === student.rollNumber) {
-                exists = true;
-                break;
-            }
-        }
-        if (exists) {
-            logger_1.Logger.error("Roll number already exists.");
-            return true;
-        }
-        else {
-            this.students.push(student);
-            this.sortStudentsBy();
-        }
+    StudentManager.prototype.getSavedStudents = function () {
+        return this.students.filter(function (student) { return student.isSavedToDisk; });
     };
-    //Delete student record  from the list using Binary Search
-    StudentManager.prototype.deleteStudent = function (rollNumber) {
+    StudentManager.prototype.getUnsavedStudents = function () {
+        return this.students.filter(function (student) { return !student.isSavedToDisk; });
+    };
+    // Optimized add with sorted insertion
+    StudentManager.prototype.addStudent = function (student) {
+        // Check if roll number already exists
+        if (this.students.some(function (s) { return s.rollNumber === student.rollNumber; })) {
+            logger_1.Logger.error("Roll number already exists.");
+            return true; // Error occurred
+        }
+        // Insert student in correct sorted position
+        this.insertStudentSorted(student);
+        this.studentsByRoll.set(student.rollNumber, student);
+        logger_1.Logger.info("Student Added Successfully");
+        logger_1.Logger.log(student);
+        return false; // Success
+    };
+    // Optimized insertion maintaining sort order
+    StudentManager.prototype.insertStudentSorted = function (newStudent) {
         var left = 0;
-        var right = this.students.length - 1;
-        while (left <= right) {
+        var right = this.students.length;
+        while (left < right) {
             var mid = Math.floor((left + right) / 2);
-            var midRollNumber = this.students[mid].rollNumber;
-            if (midRollNumber === rollNumber) {
-                this.students.splice(mid, 1); // Remove student at index mid
-                return true;
-            }
-            else if (midRollNumber < rollNumber) {
-                left = mid + 1;
+            var comparison = this.compareStudents(newStudent, this.students[mid]);
+            if (comparison <= 0) {
+                right = mid;
             }
             else {
-                right = mid - 1;
+                left = mid + 1;
             }
         }
-        return false;
+        this.students.splice(left, 0, newStudent);
     };
-    //Sort students by given field (like name, age) and type (asc or desc)
+    // Compare function for sorting (by fullName, then by rollNumber)
+    StudentManager.prototype.compareStudents = function (a, b) {
+        if (a.fullName < b.fullName)
+            return -1;
+        if (a.fullName > b.fullName)
+            return 1;
+        return a.rollNumber - b.rollNumber;
+    };
+    StudentManager.prototype.maintainSortOrder = function () {
+        this.students.sort(this.compareStudents);
+    };
+    // Optimized deletion with disk cleanup tracking
+    // deleteStudent(rollNumber: number): { success: boolean; wasSaved: boolean } {
+    //   const index = this.findStudentIndex(rollNumber);
+    //   if (index !== -1) {
+    //     const studentToDelete = this.students[index];
+    //     const wasSaved = studentToDelete.isSavedToDisk;
+    //     // If student was saved to disk, track it for deletion during save
+    //     if (wasSaved) {
+    //       this.studentsToDelete.push(studentToDelete);
+    //     }
+    //     this.students.splice(index, 1);
+    //     return { success: true, wasSaved };
+    //   }
+    //   return { success: false, wasSaved: false };
+    // }
+    // private findStudentIndex(rollNumber: number): number {
+    //   for (let i = 0; i < this.students.length; i++) {
+    //     if (this.students[i].rollNumber === rollNumber) {
+    //       return i;
+    //     }
+    //   }
+    //   return -1;
+    // }
+    StudentManager.prototype.deleteStudent = function (rollNumber) {
+        // Step 1: Use the Map for an instant lookup.
+        var studentToDelete = this.studentsByRoll.get(rollNumber);
+        if (!studentToDelete) {
+            // If student not found, return failure status.
+            return { success: false, wasSaved: false };
+        }
+        // Capture the save status BEFORE deleting the student.
+        // This assumes the Student model has an 'isSavedToDisk' property.
+        var wasSaved = studentToDelete.isSavedToDisk || false;
+        // Step 2: Use binary search to find the student's index in the sorted array.
+        var index = this.binarySearchFindIndex(studentToDelete);
+        if (index === -1) {
+            // Data inconsistency: in map but not in array. Clean up map and report failure.
+            this.studentsByRoll.delete(rollNumber);
+            return { success: false, wasSaved: false };
+        }
+        // Step 3: Remove the student from both data structures.
+        this.students.splice(index, 1);
+        this.studentsByRoll.delete(rollNumber);
+        // Return success along with whether the deleted student had been saved.
+        return { success: true, wasSaved: wasSaved };
+    };
+    // --- NEW BINARY SEARCH IMPLEMENTATION ---
+    StudentManager.prototype.binarySearchFindIndex = function (studentToFind) {
+        var low = 0;
+        var high = this.students.length - 1;
+        while (low <= high) {
+            var mid = Math.floor((low + high) / 2);
+            var midStudent = this.students[mid];
+            // Use our existing comparison function to guide the search
+            var comparison = this.compareStudents(studentToFind, midStudent);
+            if (comparison === 0) {
+                // We found a student with the same name and roll number. This is our target.
+                return mid;
+            }
+            if (comparison < 0) {
+                // studentToFind comes before midStudent, so search the left half
+                high = mid - 1;
+            }
+            else {
+                // studentToFind comes after midStudent, so search the right half
+                low = mid + 1;
+            }
+        }
+        return -1; // Student not found
+    };
+    // Save all current students to disk and mark as saved
+    StudentManager.prototype.saveAllToDisk = function () {
+        // Mark all existing students as saved
+        for (var _i = 0, _a = this.students; _i < _a.length; _i++) {
+            var student = _a[_i];
+            if (student.isSavedToDisk == false) {
+                student.isSavedToDisk = true;
+            }
+        }
+        // Clear the deletion tracking since we're doing a full save
+        this.studentsToDelete = [];
+        return this.students;
+    };
+    // Custom sorting for display
     StudentManager.prototype.sortStudentsBy = function (field, type) {
         if (field === void 0) { field = "fullName"; }
         if (type === void 0) { type = "asc"; }
         this.students.sort(function (a, b) {
-            var comparision = 0;
+            var comparison = 0;
             switch (field) {
                 case "rollNumber":
-                    comparision = a.rollNumber - b.rollNumber;
+                    comparison = a.rollNumber - b.rollNumber;
                     break;
                 case "age":
-                    comparision = a.age - b.age;
+                    comparison = a.age - b.age;
                     break;
                 case "address":
-                    if (a.address < b.address)
-                        comparision = -1;
-                    else if (a.address > b.address)
-                        comparision = 1;
-                    else
-                        comparision = 0;
+                    comparison = a.address.localeCompare(b.address);
                     break;
                 case "fullName":
                 default:
-                    if (a.fullName < b.fullName)
-                        comparision = -1;
-                    else if (a.fullName > b.fullName)
-                        comparision = 1;
-                    else {
-                        comparision = a.rollNumber - b.rollNumber;
+                    comparison = a.fullName.localeCompare(b.fullName);
+                    if (comparison === 0) {
+                        comparison = a.rollNumber - b.rollNumber;
                     }
                     break;
             }
-            return type === "desc" ? -comparision : comparision;
+            return type === "desc" ? -comparison : comparison;
         });
     };
-    //Print all student Details
+    // Enhanced display with save status
     StudentManager.prototype.displayStudents = function () {
         if (this.students.length === 0) {
             logger_1.Logger.print("No Student Details to Display.");
             return;
         }
-        logger_1.Logger.print("\n==============================================================");
-        logger_1.Logger.print("RollNo | Name           | Age | Address        | Courses");
-        logger_1.Logger.print("==============================================================");
+        logger_1.Logger.print("\n==================================================================================");
+        logger_1.Logger.print("RollNo | Name           | Age | Address        | Courses    | SAVED");
+        logger_1.Logger.print("==================================================================================");
         for (var _i = 0, _a = this.students; _i < _a.length; _i++) {
             var student = _a[_i];
             var roll = String(student.rollNumber).padEnd(6, " ");
             var name_1 = student.fullName.padEnd(14, " ");
             var age = String(student.age).padEnd(3, " ");
             var address = student.address.padEnd(14, " ");
-            var courses = student.courses; // assuming it's an array
-            logger_1.Logger.print("".concat(roll, " | ").concat(name_1, " | ").concat(age, " | ").concat(address, " | ").concat(courses));
+            var courses = student.courses.join(",").padEnd(10, " ");
+            var saved = student.isSavedToDisk ? "YES" : "NO ";
+            logger_1.Logger.print("".concat(roll, " | ").concat(name_1, " | ").concat(age, " | ").concat(address, " | ").concat(courses, " | ").concat(saved));
         }
-        logger_1.Logger.print("==============================================================");
+        logger_1.Logger.print("==================================================================================");
+        var savedCount = this.getSavedStudents().length;
+        var unsavedCount = this.getUnsavedStudents().length;
+        logger_1.Logger.print("Total: ".concat(this.students.length, " students (").concat(savedCount, " saved to disk, ").concat(unsavedCount, " in memory only)"));
+    };
+    StudentManager.prototype.hasUnsavedChanges = function () {
+        return (this.getUnsavedStudents().length > 0 || this.studentsToDelete.length > 0);
     };
     return StudentManager;
 }());

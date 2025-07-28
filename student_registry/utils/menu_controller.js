@@ -1,4 +1,13 @@
 "use strict";
+// //Import required classes and utility functions
+// import { StudentManager } from "../services/student_manager";
+// import { DataSerializer } from "../services/data_serializer";
+// import { StudentObjectCreater } from "../utils/student_object_creater";
+// import { InputHandler } from "../utils/input_handler";
+// import { InputValidator } from "../utils/input_validator";
+// import { Logger } from "../utils/logger";
+// import  {choices}  from "../models/choices";
+// import { handleAdd, handleDisplay, handleDelete, handleSave, handleExit } from "./menu_actions";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -36,8 +45,72 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MenuContoller = void 0;
-//Import required classes and utility functions
+exports.MenuController = void 0;
+// //Controller class to manage the menu and operations
+// export class MenuContoller {
+//   private studentManager: StudentManager;
+//   private studentObjectCreater: StudentObjectCreater;
+//   private dataSerializer: DataSerializer;
+//   //Constructor initializes services and loads existing student data
+//   constructor() {
+//     this.studentManager = StudentManager.getInstance();
+//     this.dataSerializer = DataSerializer.getInstance();
+//     this.studentObjectCreater = new StudentObjectCreater();
+//     this.initializeData();
+//   }
+//   //Load saved student data from disk, else set it to an empty array
+//   private initializeData() {
+//     try {
+//       const savedStudentData = this.dataSerializer.loadDataFromDisk();
+//       this.studentManager.setStudents(savedStudentData);
+//     } catch {
+//       this.studentManager.setStudents([]);
+//     }
+//   }
+//   //Displays the main menu and handles student choices in a loop
+//   async showMenu(): Promise<void> {
+//     let isRunning = true;
+//     while (true) {
+//       Logger.print("\n\n----- MENU -----");
+//       Logger.print("1. Add Students");
+//       Logger.print("2. Display Students");
+//       Logger.print("3. Delete Students");
+//       Logger.print("4. Save Students");
+//       Logger.print("5. Exit");
+//       //Ask student for their menu choice
+//       const choice = await InputHandler.getChoice(); //Gets student choice.
+//       //Perform action based on student's choice
+//       switch (choice) {
+//         case choices.ADD:
+//           try {
+//             await handleAdd();
+//           } catch (error) {
+//             Logger.error(`${error.message}`);
+//           }
+//           break;
+//         case choices.DISPLAY:
+//           try {
+//             await handleDisplay();
+//           } catch (error) {
+//             Logger.error(`${error.message}`);
+//           }
+//           break;
+//         case choices.DELETE:
+//           await handleDelete();
+//           break;
+//         case choices.SAVE:
+//           await handleSave();
+//           break;
+//         case choices.EXIT:
+//           handleExit();
+//           isRunning = false;
+//           return;
+//         default:
+//           Logger.info("Invalid choice. Please try again."); //If student enters invalid option
+//       }
+//     }
+//   }
+// }
 var student_manager_1 = require("../services/student_manager");
 var data_serializer_1 = require("../services/data_serializer");
 var student_object_creater_1 = require("../utils/student_object_creater");
@@ -45,39 +118,38 @@ var input_handler_1 = require("../utils/input_handler");
 var logger_1 = require("../utils/logger");
 var choices_1 = require("../models/choices");
 var menu_actions_1 = require("./menu_actions");
-//Controller class to manage the menu and operations
-var MenuContoller = /** @class */ (function () {
-    //Constructor initializes services and loads existing student data
-    function MenuContoller() {
+var MenuController = /** @class */ (function () {
+    function MenuController() {
         this.studentManager = student_manager_1.StudentManager.getInstance();
         this.dataSerializer = data_serializer_1.DataSerializer.getInstance();
-        this.studentFactory = new student_object_creater_1.StudentFactory();
+        this.studentObjectCreater = new student_object_creater_1.StudentObjectCreater();
         this.initializeData();
     }
-    //Load saved student data from disk, else set it to an empty array
-    MenuContoller.prototype.initializeData = function () {
+    // Load all disk data into memory at startup
+    MenuController.prototype.initializeData = function () {
         try {
             var savedStudentData = this.dataSerializer.loadDataFromDisk();
-            this.studentManager.setStudents(savedStudentData);
+            this.studentManager.initializeFromDisk(savedStudentData);
         }
-        catch (_a) {
-            this.studentManager.setStudents([]);
+        catch (error) {
+            logger_1.Logger.error("Failed to initialize data: ".concat(error));
+            this.studentManager.initializeFromDisk([]);
         }
     };
-    //Displays the main menu and handles student choices in a loop
-    MenuContoller.prototype.showMenu = function () {
+    MenuController.prototype.showMenu = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var choice, _a, error_1, error_2;
+            var choice, _a, error_1, error_2, error_3, error_4;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        if (!true) return [3 /*break*/, 18];
-                        logger_1.Logger.print("\n\n----- MENU -----");
-                        logger_1.Logger.print("1. Add Students");
+                        if (!true) return [3 /*break*/, 22];
+                        logger_1.Logger.print("\n\n========== STUDENT REGISTRY MENU ==========");
+                        logger_1.Logger.print("1. Add Student");
                         logger_1.Logger.print("2. Display Students");
-                        logger_1.Logger.print("3. Delete Students");
-                        logger_1.Logger.print("4. Save Students");
+                        logger_1.Logger.print("3. Delete Student");
+                        logger_1.Logger.print("4. Save to Disk");
                         logger_1.Logger.print("5. Exit");
+                        logger_1.Logger.print("==========================================");
                         return [4 /*yield*/, input_handler_1.InputHandler.getChoice()];
                     case 1:
                         choice = _b.sent();
@@ -86,10 +158,10 @@ var MenuContoller = /** @class */ (function () {
                             case choices_1.choices.ADD: return [3 /*break*/, 2];
                             case choices_1.choices.DISPLAY: return [3 /*break*/, 6];
                             case choices_1.choices.DELETE: return [3 /*break*/, 10];
-                            case choices_1.choices.SAVE: return [3 /*break*/, 12];
-                            case choices_1.choices.EXIT: return [3 /*break*/, 14];
+                            case choices_1.choices.SAVE: return [3 /*break*/, 14];
+                            case choices_1.choices.EXIT: return [3 /*break*/, 18];
                         }
-                        return [3 /*break*/, 16];
+                        return [3 /*break*/, 20];
                     case 2:
                         _b.trys.push([2, 4, , 5]);
                         return [4 /*yield*/, (0, menu_actions_1.handleAdd)()];
@@ -98,9 +170,9 @@ var MenuContoller = /** @class */ (function () {
                         return [3 /*break*/, 5];
                     case 4:
                         error_1 = _b.sent();
-                        logger_1.Logger.error("".concat(error_1.message));
+                        logger_1.Logger.error("Error adding student: ".concat(error_1.message));
                         return [3 /*break*/, 5];
-                    case 5: return [3 /*break*/, 17];
+                    case 5: return [3 /*break*/, 21];
                     case 6:
                         _b.trys.push([6, 8, , 9]);
                         return [4 /*yield*/, (0, menu_actions_1.handleDisplay)()];
@@ -109,30 +181,44 @@ var MenuContoller = /** @class */ (function () {
                         return [3 /*break*/, 9];
                     case 8:
                         error_2 = _b.sent();
-                        logger_1.Logger.error("".concat(error_2.message));
+                        logger_1.Logger.error("Error displaying students: ".concat(error_2.message));
                         return [3 /*break*/, 9];
-                    case 9: return [3 /*break*/, 17];
-                    case 10: return [4 /*yield*/, (0, menu_actions_1.handleDelete)()];
+                    case 9: return [3 /*break*/, 21];
+                    case 10:
+                        _b.trys.push([10, 12, , 13]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleDelete)()];
                     case 11:
                         _b.sent();
-                        return [3 /*break*/, 17];
-                    case 12: return [4 /*yield*/, (0, menu_actions_1.handleSave)()];
-                    case 13:
-                        _b.sent();
-                        return [3 /*break*/, 17];
-                    case 14: return [4 /*yield*/, (0, menu_actions_1.handleExit)()];
+                        return [3 /*break*/, 13];
+                    case 12:
+                        error_3 = _b.sent();
+                        logger_1.Logger.error("Error deleting student: ".concat(error_3.message));
+                        return [3 /*break*/, 13];
+                    case 13: return [3 /*break*/, 21];
+                    case 14:
+                        _b.trys.push([14, 16, , 17]);
+                        return [4 /*yield*/, (0, menu_actions_1.handleSave)()];
                     case 15:
                         _b.sent();
-                        return [2 /*return*/];
+                        return [3 /*break*/, 17];
                     case 16:
-                        logger_1.Logger.info("Invalid choice. Please try again."); //If student enters invalid option
-                        _b.label = 17;
-                    case 17: return [3 /*break*/, 0];
-                    case 18: return [2 /*return*/];
+                        error_4 = _b.sent();
+                        logger_1.Logger.error("Error saving students: ".concat(error_4.message));
+                        return [3 /*break*/, 17];
+                    case 17: return [3 /*break*/, 21];
+                    case 18: return [4 /*yield*/, (0, menu_actions_1.handleExit)()];
+                    case 19:
+                        _b.sent();
+                        return [2 /*return*/];
+                    case 20:
+                        logger_1.Logger.info("Invalid choice. Please select 1-5.");
+                        _b.label = 21;
+                    case 21: return [3 /*break*/, 0];
+                    case 22: return [2 /*return*/];
                 }
             });
         });
     };
-    return MenuContoller;
+    return MenuController;
 }());
-exports.MenuContoller = MenuContoller;
+exports.MenuController = MenuController;

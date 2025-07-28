@@ -1,6 +1,10 @@
 "use strict";
+// import { MenuContoller } from "./utils/menu_controller";
 Object.defineProperty(exports, "__esModule", { value: true });
+// // Create menu controller instance and start the application
+// const menuController = new MenuContoller();
+// menuController.showMenu();
 var menu_controller_1 = require("./utils/menu_controller");
 // Create menu controller instance and start the application
-var menuController = new menu_controller_1.MenuContoller();
+var menuController = new menu_controller_1.MenuController();
 menuController.showMenu();

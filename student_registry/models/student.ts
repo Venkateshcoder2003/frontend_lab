@@ -7,4 +7,5 @@ export interface Student {
   address: string;
   rollNumber: number;
   courses: Course;
+  isSavedToDisk: boolean;
 }
