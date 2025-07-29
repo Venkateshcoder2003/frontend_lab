@@ -1,94 +1,88 @@
-// tests/controllers/menu_controller.test.ts
-import { MenuContoller } from "../../utils/menu_controller";
+import { MenuController } from "../../utils/menu_controller"; // Adjust path as needed
 import { StudentManager } from "../../services/student_manager";
 import { DataSerializer } from "../../services/data_serializer";
 import { InputHandler } from "../../utils/input_handler";
 import { Logger } from "../../utils/logger";
 import { choices } from "../../models/choices";
-import * as menuActions from "../../utils/menu_actions";
-import { Student } from "../../models/student";
-import Course from "../../models/course";
+import {
+  handleAdd,
+  handleDisplay,
+  handleDelete,
+  handleSave,
+  handleExit,
+} from "../../utils/menu_actions";
 
-// Mock all dependencies to isolate the MenuController
+// Mock the dependencies, but not the class we are testing
 jest.mock("../../services/student_manager");
 jest.mock("../../services/data_serializer");
 jest.mock("../../utils/input_handler");
 jest.mock("../../utils/logger");
-// Mock the entire menu_actions module
 jest.mock("../../utils/menu_actions");
 
-describe("MenuContoller", () => {
-  // Create typed mocks for better autocompletion and type safety
-  const mockedStudentManager = StudentManager.getInstance as jest.Mock;
-  const mockedDataSerializer = DataSerializer.getInstance as jest.Mock;
-  const mockedInputHandler = InputHandler as jest.Mocked<typeof InputHandler>;
-  const mockedMenuActions = menuActions as jest.Mocked<typeof menuActions>;
+describe("MenuController", () => {
+  // Define mock instances for our services
+  let studentManagerMock: jest.Mocked<StudentManager>;
+  let dataSerializerMock: jest.Mocked<DataSerializer>;
 
-  // Runs before each test to reset mocks and instances
+  // Before each test, we reset the mocks to ensure a clean state
   beforeEach(() => {
+    // Clear all previous mock data and implementations
     jest.clearAllMocks();
+
+    // Mock the singleton getInstance methods to return our controlled mock instances
+    studentManagerMock = {
+      initializeFromDisk: jest.fn(),
+    } as any;
+    dataSerializerMock = {
+      loadDataFromDisk: jest.fn(),
+    } as any;
+
+    StudentManager.getInstance = jest.fn().mockReturnValue(studentManagerMock);
+    DataSerializer.getInstance = jest.fn().mockReturnValue(dataSerializerMock);
   });
 
-  describe("Initialization", () => {
-    it("should load data from the serializer and set it in the manager on startup", () => {
-      // Arrange: Prepare sample data to be "loaded"
-      const sampleStudents: Student[] = [
-        {
-          fullName: "Test Student",
-          age: 21,
-          address: "Test Address",
-          rollNumber: 1,
-          courses: Course[Course.A],
-        },
-      ];
-      // Mock the return value of loadDataFromDisk
-      mockedDataSerializer.mockReturnValue({
-        loadDataFromDisk: jest.fn().mockReturnValue(sampleStudents),
-      });
-      const setStudentsMock = jest.fn();
-      mockedStudentManager.mockReturnValue({ setStudents: setStudentsMock });
+  describe("constructor and initialization", () => {
+    it("should get instances of services and initialize data on creation", () => {
+      // Arrange: mock the data loading to return an empty array
+      dataSerializerMock.loadDataFromDisk.mockReturnValue([]);
 
-      // Act: Create an instance of the controller, which triggers initialization
-      new MenuContoller();
+      // Act: create a new MenuController instance
+      new MenuController();
 
-      // Assert: Verify that the data was loaded and set correctly
-      expect(mockedDataSerializer().loadDataFromDisk).toHaveBeenCalledTimes(1);
-      expect(setStudentsMock).toHaveBeenCalledWith(sampleStudents);
+      // Assert: verify that the singletons were retrieved
+      expect(StudentManager.getInstance).toHaveBeenCalledTimes(1);
+      expect(DataSerializer.getInstance).toHaveBeenCalledTimes(1);
+      // Assert: verify that data loading and initialization were attempted
+      expect(dataSerializerMock.loadDataFromDisk).toHaveBeenCalledTimes(1);
+      expect(studentManagerMock.initializeFromDisk).toHaveBeenCalledWith([]);
     });
 
-    it("should set an empty array if loading data throws an error", () => {
-      // Arrange: Make the loader throw an error
-      mockedDataSerializer.mockReturnValue({
-        loadDataFromDisk: jest.fn().mockImplementation(() => {
-          throw new Error("File not found");
-        }),
+    it("should handle errors during data initialization and start with an empty student list", () => {
+      // Arrange: mock the data loading to throw an error
+      const error = new Error("Failed to read file");
+      dataSerializerMock.loadDataFromDisk.mockImplementation(() => {
+        throw error;
       });
-      const setStudentsMock = jest.fn();
-      mockedStudentManager.mockReturnValue({ setStudents: setStudentsMock });
 
-      // Act
-      new MenuContoller();
+      // Act: create a new MenuController instance
+      new MenuController();
 
-      // Assert: Verify that an empty array was set
-      expect(setStudentsMock).toHaveBeenCalledWith([]);
+      // Assert: verify that the error was logged
+      expect(Logger.error).toHaveBeenCalledWith(
+        `Failed to initialize data: ${error}`
+      );
+      // Assert: verify that the manager was initialized with an empty array as a fallback
+      expect(studentManagerMock.initializeFromDisk).toHaveBeenCalledWith([]);
     });
   });
 
   describe("showMenu", () => {
-    // Helper function to set up the controller for menu tests
-    const setupController = () => {
-      mockedDataSerializer.mockReturnValue({
-        loadDataFromDisk: jest.fn().mockReturnValue([]),
-      });
-      mockedStudentManager.mockReturnValue({ setStudents: jest.fn() });
-      return new MenuContoller();
-    };
-
+    // Test each menu option by mocking user input
     it("should call handleAdd when user chooses ADD", async () => {
       // Arrange
-      const menuController = setupController();
-      // Simulate user choosing 'ADD' then 'EXIT'
-      mockedInputHandler.getChoice
+      const menuController = new MenuController();
+      // Mock user input to select "ADD" first, then "EXIT" to stop the loop
+      (InputHandler.getChoice as jest.Mock)
         .mockResolvedValueOnce(choices.ADD)
         .mockResolvedValueOnce(choices.EXIT);
 
@@ -96,14 +90,14 @@ describe("MenuContoller", () => {
       await menuController.showMenu();
 
       // Assert
-      expect(mockedMenuActions.handleAdd).toHaveBeenCalledTimes(1);
+      // FIX: Use the directly imported mock function
+      expect(handleAdd).toHaveBeenCalledTimes(1);
     });
 
     it("should call handleDisplay when user chooses DISPLAY", async () => {
       // Arrange
-      const menuController = setupController();
-      // Simulate user choosing 'DISPLAY' then 'EXIT'
-      mockedInputHandler.getChoice
+      const menuController = new MenuController();
+      (InputHandler.getChoice as jest.Mock)
         .mockResolvedValueOnce(choices.DISPLAY)
         .mockResolvedValueOnce(choices.EXIT);
 
@@ -111,14 +105,14 @@ describe("MenuContoller", () => {
       await menuController.showMenu();
 
       // Assert
-      expect(mockedMenuActions.handleDisplay).toHaveBeenCalledTimes(1);
+      // FIX: Use the directly imported mock function
+      expect(handleDisplay).toHaveBeenCalledTimes(1);
     });
 
     it("should call handleDelete when user chooses DELETE", async () => {
       // Arrange
-      const menuController = setupController();
-      // Simulate user choosing 'DELETE' then 'EXIT'
-      mockedInputHandler.getChoice
+      const menuController = new MenuController();
+      (InputHandler.getChoice as jest.Mock)
         .mockResolvedValueOnce(choices.DELETE)
         .mockResolvedValueOnce(choices.EXIT);
 
@@ -126,14 +120,14 @@ describe("MenuContoller", () => {
       await menuController.showMenu();
 
       // Assert
-      expect(mockedMenuActions.handleDelete).toHaveBeenCalledTimes(1);
+      // FIX: Use the directly imported mock function
+      expect(handleDelete).toHaveBeenCalledTimes(1);
     });
 
     it("should call handleSave when user chooses SAVE", async () => {
       // Arrange
-      const menuController = setupController();
-      // Simulate user choosing 'SAVE' then 'EXIT'
-      mockedInputHandler.getChoice
+      const menuController = new MenuController();
+      (InputHandler.getChoice as jest.Mock)
         .mockResolvedValueOnce(choices.SAVE)
         .mockResolvedValueOnce(choices.EXIT);
 
@@ -141,22 +135,58 @@ describe("MenuContoller", () => {
       await menuController.showMenu();
 
       // Assert
-      expect(mockedMenuActions.handleSave).toHaveBeenCalledTimes(1);
+      // FIX: Use the directly imported mock function
+      expect(handleSave).toHaveBeenCalledTimes(1);
     });
 
     it("should call handleExit and terminate the loop when user chooses EXIT", async () => {
       // Arrange
-      const menuController = setupController();
-      // Simulate user choosing 'EXIT' immediately
-      mockedInputHandler.getChoice.mockResolvedValueOnce(choices.EXIT);
+      const menuController = new MenuController();
+      (InputHandler.getChoice as jest.Mock).mockResolvedValueOnce(choices.EXIT);
 
       // Act
       await menuController.showMenu();
 
       // Assert
-      expect(mockedMenuActions.handleExit).toHaveBeenCalledTimes(1);
-      // Verify other actions were not called
-      expect(mockedMenuActions.handleAdd).not.toHaveBeenCalled();
+      // FIX: Use the directly imported mock function
+      expect(handleExit).toHaveBeenCalledTimes(1);
+      // Ensure no other action was called
+      expect(handleAdd).not.toHaveBeenCalled();
+    });
+
+    it("should log an info message for an invalid choice", async () => {
+      // Arrange
+      const menuController = new MenuController();
+      (InputHandler.getChoice as jest.Mock)
+        .mockResolvedValueOnce("invalid_choice" as any) // Simulate invalid input
+        .mockResolvedValueOnce(choices.EXIT);
+
+      // Act
+      await menuController.showMenu();
+
+      // Assert
+      expect(Logger.info).toHaveBeenCalledWith(
+        "Invalid choice. Please select 1-5."
+      );
+    });
+
+    it("should log an error if a menu action throws an exception", async () => {
+      // Arrange
+      const menuController = new MenuController();
+      const error = new Error("Something went wrong");
+      // FIX: Use the directly imported mock function
+      (handleAdd as jest.Mock).mockRejectedValue(error);
+      (InputHandler.getChoice as jest.Mock)
+        .mockResolvedValueOnce(choices.ADD)
+        .mockResolvedValueOnce(choices.EXIT);
+
+      // Act
+      await menuController.showMenu();
+
+      // Assert
+      expect(Logger.error).toHaveBeenCalledWith(
+        `Error adding student: ${error.message}`
+      );
     });
   });
 });

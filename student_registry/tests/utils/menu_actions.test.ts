@@ -1,220 +1,309 @@
-// tests/controllers/menu_actions.test.ts
+// Import the types for our mocks and the functions to be tested
 import { StudentManager } from "../../services/student_manager";
 import { DataSerializer } from "../../services/data_serializer";
-import { StudentFactory } from "../../utils/student_object_creater";
-import { InputHandler } from "../../utils/input_handler";
-import { InputValidator } from "../../utils/input_validator";
-import { Logger } from "../../utils/logger";
-import { Student } from "../../models/student";
+import { StudentObjectCreater } from "../../utils/student_object_creater";
+import {
+  handleAdd,
+  handleDisplay,
+  handleDelete,
+  handleSave,
+  handleExit,
+} from "../../utils/menu_actions";
 import Course from "../../models/course";
+import { Student } from "../../models/student";
 
-// --- 1. Define mock functions for the class methods first ---
-const mockAddStudent = jest.fn();
-const mockSaveData = jest.fn();
-const mockLoadData = jest.fn();
-const mockGetStudents = jest.fn();
-const mockDisplayStudents = jest.fn();
-const mockDeleteStudent = jest.fn();
-const mockSortStudentsBy = jest.fn();
-const mockCreateStudent = jest.fn();
+// --- Mock Setup ---
+// Create mock objects that we can control throughout the tests
+const studentManagerMock = {
+  addStudent: jest.fn(),
+  displayStudents: jest.fn(),
+  deleteStudent: jest.fn(),
+  hasUnsavedChanges: jest.fn(),
+  saveAllToDisk: jest.fn(),
+  getUnsavedStudents: jest.fn(),
+};
 
-// --- 2. Mock the modules using a factory function ---
-// This ensures that the mock is configured before the module under test is imported.
-// When menu_actions.ts calls getInstance(), it will receive our mock object.
+const dataSerializerMock = {
+  saveDataToDisk: jest.fn(),
+};
+
+const studentObjectCreaterMock = {
+  createStudent: jest.fn(),
+};
+
+// Mock the modules using the factory pattern to provide the implementation immediately
 jest.mock("../../services/student_manager", () => ({
   StudentManager: {
-    getInstance: jest.fn().mockImplementation(() => ({
-      addStudent: mockAddStudent,
-      getStudents: mockGetStudents,
-      displayStudents: mockDisplayStudents,
-      deleteStudent: mockDeleteStudent,
-      sortStudentsBy: mockSortStudentsBy,
-    })),
+    getInstance: jest.fn().mockReturnValue(studentManagerMock),
   },
 }));
 
 jest.mock("../../services/data_serializer", () => ({
   DataSerializer: {
-    getInstance: jest.fn().mockImplementation(() => ({
-      saveDataToDisk: mockSaveData,
-      loadDataFromDisk: mockLoadData,
-    })),
+    getInstance: jest.fn().mockReturnValue(dataSerializerMock),
   },
 }));
 
 jest.mock("../../utils/student_object_creater", () => ({
-  StudentFactory: jest.fn().mockImplementation(() => ({
-    createStudent: mockCreateStudent,
-  })),
+  StudentObjectCreater: jest
+    .fn()
+    .mockImplementation(() => studentObjectCreaterMock),
 }));
 
-// Mock other utility dependencies as before
+// Mock other dependencies without a custom factory, as they are simpler
 jest.mock("../../utils/input_handler");
 jest.mock("../../utils/input_validator");
 jest.mock("../../utils/logger");
+jest.mock("../../utils/ask_query");
+jest.mock("../../utils/handle_custom_sort_display");
+jest.mock("../../utils/handel_default_display");
 
-// --- 3. Now import the module to be tested ---
-// Its module-level singletons will now be initialized with our mocked instances.
-import * as menuActions from "../../utils/menu_actions";
+// We need to typecast the mocked imports to control them in our tests
+const MockedStudentManager = StudentManager as jest.MockedClass<
+  typeof StudentManager
+>;
+const MockedDataSerializer = DataSerializer as jest.MockedClass<
+  typeof DataSerializer
+>;
+const MockedStudentObjectCreater = StudentObjectCreater as jest.MockedClass<
+  typeof StudentObjectCreater
+>;
+
+// Because the mocks are now set up correctly, we can import the functions that use them.
+import { InputHandler } from "../../utils/input_handler";
+import { InputValidator } from "../../utils/input_validator";
+import { Logger } from "../../utils/logger";
+import { AskQuery } from "../../utils/ask_query";
+import { handleCustomSortDisplay } from "../../utils/handle_custom_sort_display";
+import { handleDefaultDisplay } from "../../utils/handel_default_display";
 
 describe("Menu Actions", () => {
-  // Get typed references to the mocked utilities
-  const mockedInputHandler = InputHandler as jest.Mocked<typeof InputHandler>;
-  const mockedInputValidator = InputValidator as jest.Mocked<
-    typeof InputValidator
-  >;
-  const mockedLogger = Logger as jest.Mocked<typeof Logger>;
-
-  // Reset all mock function call histories before each test
+  // Before each test, clear the history of all mock calls
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe("handleAdd", () => {
-    it("should add a student and save when validation is successful", async () => {
+    it("should add a student and display the list on success", async () => {
       // Arrange
-      const studentInput = {
-        fullName: "John Doe",
-        age: "22",
+      const fakeInput = {
+        fullName: "Test",
+        age: "21",
         address: "123 St",
         rollNumber: "101",
-        courses: "A,B",
+        courses: "A",
       };
-      const validatedData = {
-        ...studentInput,
-        age: 22,
+      const fakeValidatedData = {
+        fullName: "Test",
+        age: 21,
+        address: "123 St",
         rollNumber: 101,
-        courses: [Course.A, Course.B],
+        courses: Course.A,
       };
-      const newStudent = { ...validatedData };
+      const fakeStudent: Student = {
+        ...fakeValidatedData,
+        isSavedToDisk: false,
+      };
 
-      mockedInputHandler.getStudentInput.mockResolvedValue(studentInput);
-      mockedInputValidator.validateAndGetStudentData.mockResolvedValue(
-        validatedData
+      (InputHandler.getStudentInput as jest.Mock).mockResolvedValue(fakeInput);
+      (InputValidator.validateAndGetStudentData as jest.Mock).mockResolvedValue(
+        fakeValidatedData
       );
-      mockCreateStudent.mockReturnValue(newStudent);
-      mockAddStudent.mockReturnValue(false); // Simulate student not being a duplicate
+      studentObjectCreaterMock.createStudent.mockReturnValue(fakeStudent);
+      studentManagerMock.addStudent.mockReturnValue(false); // Indicates success (not a duplicate)
 
       // Act
-      await menuActions.handleAdd();
+      await handleAdd();
 
       // Assert
-      expect(mockedInputHandler.getStudentInput).toHaveBeenCalledTimes(1);
-      expect(
-        mockedInputValidator.validateAndGetStudentData
-      ).toHaveBeenCalledWith(studentInput);
-      expect(mockCreateStudent).toHaveBeenCalledWith(
-        validatedData.fullName,
-        validatedData.age,
-        validatedData.address,
-        validatedData.rollNumber,
-        validatedData.courses
+      expect(InputHandler.getStudentInput).toHaveBeenCalledTimes(1);
+      expect(InputValidator.validateAndGetStudentData).toHaveBeenCalledWith(
+        fakeInput
       );
-      expect(mockAddStudent).toHaveBeenCalledWith(newStudent);
-      expect(mockSaveData).toHaveBeenCalledTimes(1);
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        "Student Added Successfully"
+      expect(studentObjectCreaterMock.createStudent).toHaveBeenCalledWith(
+        fakeValidatedData.fullName,
+        fakeValidatedData.age,
+        fakeValidatedData.address,
+        fakeValidatedData.rollNumber,
+        fakeValidatedData.courses
       );
+      expect(studentManagerMock.addStudent).toHaveBeenCalledWith(fakeStudent);
+      expect(Logger.info).toHaveBeenCalledWith("\nCurrent Students in Memory:");
+      expect(studentManagerMock.displayStudents).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("handleDisplay", () => {
+    it("should call handleCustomSortDisplay if user says yes", async () => {
+      // Arrange
+      (InputHandler.getYesNoInput as jest.Mock).mockResolvedValue(true);
+
+      // Act
+      await handleDisplay();
+
+      // Assert
+      expect(handleCustomSortDisplay).toHaveBeenCalledTimes(1);
+      expect(handleDefaultDisplay).not.toHaveBeenCalled();
     });
 
-    it("should not save if the student already exists", async () => {
+    it("should call handleDefaultDisplay if user says no", async () => {
       // Arrange
-      mockedInputHandler.getStudentInput.mockResolvedValue({} as any);
-      mockedInputValidator.validateAndGetStudentData.mockResolvedValue(
-        {} as any
-      );
-      mockAddStudent.mockReturnValue(true); // Simulate student being a duplicate
+      (InputHandler.getYesNoInput as jest.Mock).mockResolvedValue(false);
 
       // Act
-      await menuActions.handleAdd();
+      await handleDisplay();
 
       // Assert
-      expect(mockSaveData).not.toHaveBeenCalled();
+      expect(handleDefaultDisplay).toHaveBeenCalledTimes(1);
+      expect(handleCustomSortDisplay).not.toHaveBeenCalled();
     });
   });
 
   describe("handleDelete", () => {
-    it("should delete a student and save when roll number is valid", async () => {
+    it("should successfully delete a student and display the list", async () => {
       // Arrange
-      mockedInputHandler.getRollNumberForDelete.mockResolvedValue(101);
-      mockedInputValidator.validateRollNumberForDelete.mockReturnValue({
-        isValid: true,
-        value: 101,
+      (InputHandler.getRollNumberForDelete as jest.Mock).mockResolvedValue(
+        "101"
+      );
+      (InputValidator.validateRollNumberForDelete as jest.Mock).mockReturnValue(
+        { isValid: true, value: 101 }
+      );
+      studentManagerMock.deleteStudent.mockReturnValue({
+        success: true,
+        wasSaved: true,
       });
-      mockDeleteStudent.mockReturnValue(true); // Simulate successful deletion
 
       // Act
-      await menuActions.handleDelete();
+      await handleDelete();
 
       // Assert
-      expect(
-        mockedInputValidator.validateRollNumberForDelete
-      ).toHaveBeenCalledWith("101");
-      expect(mockDeleteStudent).toHaveBeenCalledWith(101);
-      expect(mockSaveData).toHaveBeenCalledTimes(1);
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        "Student With Roll Number 101 Deleted Successfully"
+      expect(studentManagerMock.deleteStudent).toHaveBeenCalledWith(101);
+      expect(Logger.info).toHaveBeenCalledWith(
+        "Student with Roll Number 101 deleted successfully."
       );
+      expect(studentManagerMock.displayStudents).toHaveBeenCalledTimes(1);
     });
 
-    it("should log an error if roll number is invalid", async () => {
+    it('should show a "not found" message if the student does not exist', async () => {
       // Arrange
-      mockedInputHandler.getRollNumberForDelete.mockResolvedValue(999);
-      mockedInputValidator.validateRollNumberForDelete.mockReturnValue({
-        isValid: false,
-        error: "Invalid number",
+      (InputHandler.getRollNumberForDelete as jest.Mock).mockResolvedValue(
+        "999"
+      );
+      (InputValidator.validateRollNumberForDelete as jest.Mock).mockReturnValue(
+        { isValid: true, value: 999 }
+      );
+      studentManagerMock.deleteStudent.mockReturnValue({
+        success: false,
+        wasSaved: false,
       });
 
       // Act
-      await menuActions.handleDelete();
+      await handleDelete();
 
       // Assert
-      expect(
-        mockedInputValidator.validateRollNumberForDelete
-      ).toHaveBeenCalledWith("999");
-      expect(mockDeleteStudent).not.toHaveBeenCalled();
-      expect(mockedLogger.error).toHaveBeenCalledWith("Invalid number");
+      expect(Logger.info).toHaveBeenCalledWith(
+        "Student with roll number 999 was not found."
+      );
+      expect(studentManagerMock.displayStudents).not.toHaveBeenCalled();
     });
   });
 
   describe("handleSave", () => {
-    it("should sort students and save data", async () => {
+    it("should save data to disk if there are unsaved changes", async () => {
+      // Arrange
+      const fakeStudents: Student[] = [
+        {
+          fullName: "Saved Student",
+          age: 22,
+          address: "Disk Drive",
+          rollNumber: 202,
+          courses: Course.B,
+          isSavedToDisk: true,
+        },
+      ];
+      studentManagerMock.hasUnsavedChanges.mockReturnValue(true);
+      studentManagerMock.saveAllToDisk.mockReturnValue(fakeStudents);
+
       // Act
-      await menuActions.handleSave();
+      await handleSave();
 
       // Assert
-      expect(mockSortStudentsBy).toHaveBeenCalledTimes(1);
-      expect(mockSaveData).toHaveBeenCalledTimes(1);
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        "Student data Updated in Student Registry"
+      expect(studentManagerMock.saveAllToDisk).toHaveBeenCalledTimes(1);
+      expect(dataSerializerMock.saveDataToDisk).toHaveBeenCalledWith(
+        fakeStudents
       );
+      expect(Logger.info).toHaveBeenCalledWith(
+        "All student data saved to disk successfully!"
+      );
+      expect(studentManagerMock.displayStudents).toHaveBeenCalledTimes(1);
+    });
+
+    it("should do nothing if there are no unsaved changes", async () => {
+      // Arrange
+      studentManagerMock.hasUnsavedChanges.mockReturnValue(false);
+
+      // Act
+      await handleSave();
+
+      // Assert
+      expect(Logger.info).toHaveBeenCalledWith("No unsaved changes to save.");
+      expect(studentManagerMock.saveAllToDisk).not.toHaveBeenCalled();
     });
   });
 
   describe("handleExit", () => {
-    it("should save data if user says yes", async () => {
+    it("should prompt to save if there are unsaved changes and save if user says yes", async () => {
       // Arrange
-      mockedInputHandler.getYesNoInput.mockResolvedValue(true);
+      studentManagerMock.hasUnsavedChanges.mockReturnValue(true);
+      studentManagerMock.getUnsavedStudents.mockReturnValue([{} as Student]); // one unsaved change
+      (InputHandler.getYesNoInput as jest.Mock).mockResolvedValue(true);
 
       // Act
-      await menuActions.handleExit();
+      await handleExit();
 
       // Assert
-      expect(mockSaveData).toHaveBeenCalledTimes(1);
-      expect(mockedLogger.info).toHaveBeenCalledWith("Student Data saved.");
-      expect(InputHandler.close).toHaveBeenCalledTimes(1);
+      expect(InputHandler.getYesNoInput).toHaveBeenCalled();
+      expect(studentManagerMock.saveAllToDisk).toHaveBeenCalledTimes(1);
+      expect(dataSerializerMock.saveDataToDisk).toHaveBeenCalledTimes(1);
+      expect(Logger.info).toHaveBeenCalledWith(
+        "Student data saved successfully."
+      );
+      expect(AskQuery.close).toHaveBeenCalledTimes(1);
     });
 
-    it("should not save data if user says no", async () => {
+    it("should exit without saving if user says no", async () => {
       // Arrange
-      mockedInputHandler.getYesNoInput.mockResolvedValue(false);
+      studentManagerMock.hasUnsavedChanges.mockReturnValue(true);
+      studentManagerMock.getUnsavedStudents.mockReturnValue([
+        {} as Student,
+        {} as Student,
+      ]); // two unsaved changes
+      (InputHandler.getYesNoInput as jest.Mock).mockResolvedValue(false);
 
       // Act
-      await menuActions.handleExit();
+      await handleExit();
 
       // Assert
-      expect(mockSaveData).not.toHaveBeenCalled();
-      expect(InputHandler.close).toHaveBeenCalledTimes(1);
+      expect(Logger.info).toHaveBeenCalledWith(
+        "Exiting without saving 2 unsaved changes."
+      );
+      expect(studentManagerMock.saveAllToDisk).not.toHaveBeenCalled();
+      expect(AskQuery.close).toHaveBeenCalledTimes(1);
+    });
+
+    it("should exit directly if there are no unsaved changes", async () => {
+      // Arrange
+      studentManagerMock.hasUnsavedChanges.mockReturnValue(false);
+
+      // Act
+      await handleExit();
+
+      // Assert
+      expect(Logger.info).toHaveBeenCalledWith(
+        "No unsaved changes. Exiting..."
+      );
+      expect(InputHandler.getYesNoInput).not.toHaveBeenCalled();
+      expect(AskQuery.close).toHaveBeenCalledTimes(1);
     });
   });
 });

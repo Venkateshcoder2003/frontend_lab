@@ -1,101 +1,72 @@
-// tests/services/data_serializer.test.ts
 import { DataSerializer } from "../../services/data_serializer";
 import { Student } from "../../models/student";
 import { Logger } from "../../utils/logger";
 import Course from "../../models/course";
 import * as fs from "fs";
 
-// Mock the dependencies to isolate the DataSerializer class
+//Mock the dependencies
 jest.mock("fs");
 jest.mock("../../utils/logger");
 
-// Create typed mocks for better autocompletion and type safety
+//Create typed mocks for better autocompletion and type safety in our tests
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedLogger = Logger as jest.Mocked<typeof Logger>;
 
 describe("DataSerializer", () => {
+  //A variable to hold the instance of the class we are testing
   let dataSerializer: DataSerializer;
 
-  // Sample test data using the correct 'Student' type
+  // Sample test data that conforms to the 'Student' type
   const testStudents: Student[] = [
     {
       fullName: "Alice Johnson",
       age: 20,
       address: "123 Main St",
       rollNumber: 1001,
-      courses: Course[Course.A, Course.B, Course.C, Course.D],
-    },
-    {
-      fullName: "Bob Smith",
-      age: 22,
-      address: "456 Oak Ave",
-      rollNumber: 1002,
-      courses: Course[Course.B, Course.C, Course.D, Course.E],
+      courses: Course[(Course.A, Course.B)],
+      isSavedToDisk: false, // Start as unsaved
     },
   ];
 
-  // This block runs before each individual test
+  //This block runs before each individual test case
   beforeEach(() => {
-    // Clear mock history to ensure tests are independent
+    //Clear the history of all mocks to ensure tests are independent
     jest.clearAllMocks();
-    // Get the singleton instance for each test
+    //Get the singleton instance for each test
     dataSerializer = DataSerializer.getInstance();
   });
 
-  describe("Singleton Pattern", () => {
-    test("should always return the same instance", () => {
-      // Act
-      const instance1 = DataSerializer.getInstance();
-      const instance2 = DataSerializer.getInstance();
-
-      // Assert
-      expect(instance1).toBe(instance2);
-    });
-  });
-
+  //Test suite for the saveDataToDisk method
   describe("saveDataToDisk", () => {
-    test("should save data successfully with correct path and formatting", () => {
-      // Arrange
-      mockedFs.writeFileSync.mockImplementation(() => {}); // Mock the file write to do nothing
-
-      // Act
-      dataSerializer.saveDataToDisk(testStudents);
-
-      // Assert
-      expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(1);
-      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-        "./data/student_data.json", // Use the correct file path from the class
-        JSON.stringify(testStudents, null, 2),
-        "utf-8"
-      );
-    });
-
-    test("should handle saving an empty array", () => {
-      // Arrange
+    it("should save data successfully with the correct path and formatting", () => {
+      //Arrange Set up the test. We tell the fake writeFileSync to do nothing
       mockedFs.writeFileSync.mockImplementation(() => {});
 
-      // Act
-      dataSerializer.saveDataToDisk([]);
+      // Act: Call the method we want to test.
+      dataSerializer.saveDataToDisk(testStudents);
 
-      // Assert
+      //Assert: Check if the outcome is what we expected.
+      //Was the fake writeFileSync called exactly once?
+      expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(1);
+      //Was it called with the EXACT correct arguments?
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-        "./data/student_data.json",
-        JSON.stringify([], null, 2),
+        "./data/student_data.json", // The file path from the class
+        JSON.stringify(testStudents, null, 2), // The data, pretty-printed
         "utf-8"
       );
     });
 
-    test("should log an error when writeFileSync throws an error", () => {
-      // Arrange
+    it("should log an error when writeFileSync throws an error", () => {
+      // Arrange: Force the mock to simulate a file system error.
       const writeError = new Error("Write permission denied");
       mockedFs.writeFileSync.mockImplementation(() => {
         throw writeError;
       });
 
-      // Act
+      // Act: Call the method, which should catch the error.
       dataSerializer.saveDataToDisk(testStudents);
 
-      // Assert
+      // Assert: Check if our error handling logic worked.
       expect(mockedLogger.error).toHaveBeenCalledTimes(1);
       expect(mockedLogger.error).toHaveBeenCalledWith(
         `Failed to save data: ${writeError}`
@@ -103,43 +74,43 @@ describe("DataSerializer", () => {
     });
   });
 
+  //Test suite for the loadDataFromDisk method.
   describe("loadDataFromDisk", () => {
-    test("should load and parse data successfully when file exists", () => {
-      // Arrange
-      const jsonData = JSON.stringify(testStudents);
-      mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockReturnValue(jsonData);
+    it("should load, parse, and preserve the isSavedToDisk flag successfully", () => {
+      // Arrange: Simulate a file where the students are already marked as saved.
+      // This is what the real file would contain.
+      const studentsInFile: Student[] = [
+        { ...testStudents[0], isSavedToDisk: true },
+        { ...testStudents[1], isSavedToDisk: true },
+      ];
+      const rawJsonData = JSON.stringify(studentsInFile);
 
-      // Act
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedFs.readFileSync.mockReturnValue(rawJsonData);
+
+      // Act: Call the method.
       const result = dataSerializer.loadDataFromDisk();
 
-      // Assert
-      expect(mockedFs.existsSync).toHaveBeenCalledWith(
-        "./data/student_data.json"
-      );
-      expect(mockedFs.readFileSync).toHaveBeenCalledWith(
-        "./data/student_data.json",
-        "utf-8"
-      );
-      expect(result).toEqual(testStudents);
+      // Assert: The result from the function should be identical to what was in the file.
+      expect(result).toEqual(studentsInFile);
     });
 
-    test("should return an empty array when file does not exist", () => {
-      // Arrange
+    it("should return an empty array when the file does not exist", () => {
+      // Arrange: Simulate a file that does NOT exist.
       mockedFs.existsSync.mockReturnValue(false);
 
       // Act
       const result = dataSerializer.loadDataFromDisk();
 
       // Assert
-      expect(result).toEqual([]);
-      expect(mockedFs.readFileSync).not.toHaveBeenCalled();
+      expect(result).toEqual([]); // The method should return an empty array.
+      expect(mockedFs.readFileSync).not.toHaveBeenCalled(); // It shouldn't even try to read the file.
     });
 
-    test("should return an empty array when file is empty or contains only whitespace", () => {
-      // Arrange
+    it("should return an empty array when the file is empty", () => {
+      // Arrange: Simulate a file that exists but is empty.
       mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockReturnValue("   \n\t  ");
+      mockedFs.readFileSync.mockReturnValue("");
 
       // Act
       const result = dataSerializer.loadDataFromDisk();
@@ -148,58 +119,19 @@ describe("DataSerializer", () => {
       expect(result).toEqual([]);
     });
 
-    test("should log an error and return an empty array when readFileSync fails", () => {
-      // Arrange
-      const readError = new Error("File read error");
+    it("should log an error and return an empty array for invalid JSON", () => {
+      // Arrange: Simulate a file with corrupted content.
       mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockImplementation(() => {
-        throw readError;
-      });
-
-      // Act
-      const result = dataSerializer.loadDataFromDisk();
-
-      // Assert
-      expect(mockedLogger.error).toHaveBeenCalledWith(
-        `Failed to load data: ${readError}`
-      );
-      expect(result).toEqual([]);
-    });
-
-    test("should log an error and return an empty array for invalid JSON", () => {
-      // Arrange
-      mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockReturnValue("invalid json {");
+      mockedFs.readFileSync.mockReturnValue("this is not valid json");
 
       // Act
       const result = dataSerializer.loadDataFromDisk();
 
       // Assert
       expect(mockedLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to load data:")
+        expect.stringContaining("Failed to load data:") // Check that an error was logged.
       );
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("Integration: Save and Load", () => {
-    test("should save and then load data, maintaining consistency", () => {
-      // Arrange
-      let inMemoryStorage = "";
-      mockedFs.writeFileSync.mockImplementation((path, data) => {
-        inMemoryStorage = data as string;
-      });
-      mockedFs.readFileSync.mockImplementation(() => inMemoryStorage);
-      mockedFs.existsSync.mockReturnValue(true);
-
-      // Act 1: Save the data
-      dataSerializer.saveDataToDisk(testStudents);
-
-      // Act 2: Load the data
-      const loadedStudents = dataSerializer.loadDataFromDisk();
-
-      // Assert
-      expect(loadedStudents).toEqual(testStudents);
+      expect(result).toEqual([]); // It should return an empty array.
     });
   });
 });

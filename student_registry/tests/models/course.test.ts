@@ -27,5 +27,4 @@ describe("Course Enum", () => {
     expect(actualCourses).toEqual(expect.arrayContaining(expectedCourses));
     expect(actualCourses.sort()).toEqual(expectedCourses.sort());
   });
-
 });

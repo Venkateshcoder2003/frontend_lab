@@ -7,6 +7,7 @@ export class Logger {
   static error(error: string) {
     console.log(`[studentRegistry]${error}`);
   }
+
   static print(message: string) {
     console.log(`${message}`);
   }

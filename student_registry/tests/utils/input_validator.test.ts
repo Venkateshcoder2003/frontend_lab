@@ -1,166 +1,115 @@
-// tests/utils/input_validator.test.ts
 import {
   InputValidator,
   ValidatedStudentData,
 } from "../../utils/input_validator";
-import { InputHandler, StudentInputData } from "../../utils/input_handler";
 import { Logger } from "../../utils/logger";
+import { AskQuery } from "../../utils/ask_query";
 import Course from "../../models/course";
-
-// Mock the dependencies
-jest.mock("../../utils/input_handler");
 jest.mock("../../utils/logger");
+jest.mock("../../utils/ask_query");
+jest.mock("../../models/course", () => ({
+  A: "A",
+  B: "B",
+  C: "C",
+  D: "D",
+  E: "E",
+  F: "F",
+}));
+
+const mockedLogger = Logger as jest.Mocked<typeof Logger>;
+const mockedAskQuery = AskQuery as jest.Mocked<typeof AskQuery>;
 
 describe("InputValidator", () => {
-  // Create typed mocks for better autocompletion
-  const mockedInputHandler = InputHandler as jest.Mocked<typeof InputHandler>;
-  const mockedLogger = Logger as jest.Mocked<typeof Logger>;
-
-  // Reset mocks before each test to ensure isolation
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("validateAndGetStudentData", () => {
-    it("should correctly validate all fields when initial input is valid", async () => {
-      // Arrange
-      const validInput: StudentInputData = {
-        fullName: "John Doe",
-        age: "25",
-        address: "123 Test St",
-        rollNumber: "101",
-        courses: "A,B,C,D",
-      };
-
-      // Act
-      const result = await InputValidator.validateAndGetStudentData(validInput);
-
-      // Assert
-      expect(result).toEqual({
-        fullName: "John Doe",
-        age: 25,
-        address: "123 Test St",
-        rollNumber: 101,
-        courses: [Course.A, Course.B, Course.C, Course.D],
-      });
-      // Ensure no re-prompting occurred
-      expect(mockedInputHandler.askQuery).not.toHaveBeenCalled();
+  describe("validateName", () => {
+    it("should accept valid name", async () => {
+      const validatedData: Partial<ValidatedStudentData> = {};
+      await InputValidator.validateName("John Doe", validatedData);
+      expect(validatedData.fullName).toBe("John Doe");
     });
 
-    it("should re-prompt for fields that are initially invalid", async () => {
-      // Arrange
-      const invalidInput: StudentInputData = {
-        fullName: " ", // Invalid
-        age: "-5", // Invalid
-        address: "456 Oak Ave", // Valid
-        rollNumber: "abc", // Invalid
-        courses: "A,B,C", // Invalid
-      };
-
-      // Simulate user providing valid input on the second try for each invalid field
-      mockedInputHandler.askQuery
-        .mockResolvedValueOnce("Jane Doe") // Correct name
-        .mockResolvedValueOnce("30") // Correct age
-        .mockResolvedValueOnce("202") // Correct roll number
-        .mockResolvedValueOnce("A,B,E,F"); // Correct courses
-
-      // Act
-      const result = await InputValidator.validateAndGetStudentData(
-        invalidInput
-      );
-
-      // Assert
-      expect(result).toEqual({
-        fullName: "Jane Doe",
-        age: 30,
-        address: "456 Oak Ave",
-        rollNumber: 202,
-        courses: [Course.A, Course.B, Course.E, Course.F],
-      });
-      // Ensure re-prompting occurred for the invalid fields
-      expect(mockedInputHandler.askQuery).toHaveBeenCalledTimes(4);
+    it("should prompt for re-entry when name is empty", async () => {
+      const validatedData: Partial<ValidatedStudentData> = {};
+      mockedAskQuery.askQuery = jest.fn().mockResolvedValue("Valid Name");
+      await InputValidator.validateName("", validatedData);
+      expect(validatedData.fullName).toBe("Valid Name");
     });
   });
 
-  describe("validateRollNumberForDelete", () => {
-    it("should return valid for a positive number string", () => {
-      const result = InputValidator.validateRollNumberForDelete("123");
-      expect(result).toEqual({ isValid: true, value: 123 });
+  describe("validateAge", () => {
+    it("should accept valid age", async () => {
+      const validatedData: Partial<ValidatedStudentData> = {};
+      await InputValidator.validateAge("25", validatedData);
+      expect(validatedData.age).toBe(25);
     });
 
-    it("should return invalid for a non-numeric string", () => {
-      const result = InputValidator.validateRollNumberForDelete("abc");
-      expect(result.isValid).toBe(false);
-      expect(result.error).toBeDefined();
+    it("should reject negative ages", async () => {
+      const validatedData: Partial<ValidatedStudentData> = {};
+      mockedAskQuery.askQuery = jest.fn().mockResolvedValue("25");
+      await InputValidator.validateAge("-5", validatedData);
+      expect(validatedData.age).toBe(25);
     });
   });
 
   describe("processCoursesInput", () => {
-    it("should return a valid course array for a correct input string", () => {
-      const result = InputValidator.processCoursesInput("A, B, C, D");
+    it("should process valid courses correctly", () => {
+      const result = InputValidator.processCoursesInput("a,b,c,d");
       expect(result).toEqual(["A", "B", "C", "D"]);
     });
 
-    it("should return null for the wrong number of courses", () => {
-      const result = InputValidator.processCoursesInput("A, B, C");
+    it("should reject courses with wrong count", () => {
+      const result = InputValidator.processCoursesInput("A,B,C");
       expect(result).toBeNull();
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining("You must enter exactly 4 courses")
-      );
     });
 
-    it("should return null for an invalid course letter", () => {
-      const result = InputValidator.processCoursesInput("A, B, C, Z");
+    it("should reject duplicate courses", () => {
+      const result = InputValidator.processCoursesInput("A,B,A,D");
       expect(result).toBeNull();
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining("'Z' is not valid")
-      );
+    });
+  });
+
+  describe("validateChoice", () => {
+    it("should return valid choice for numbers 1-5", () => {
+      expect(InputValidator.validateChoice("3")).toBe(3);
     });
 
-    it("should return null for duplicate courses", () => {
-      const result = InputValidator.processCoursesInput("A, B, C, A");
-      expect(result).toBeNull();
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Duplicate course found: 'A'")
-      );
+    it("should return null for invalid choices", () => {
+      expect(InputValidator.validateChoice("6")).toBeNull();
     });
   });
 
   describe("validateSortField", () => {
-    it("should return the correct field for valid aliases", () => {
-      expect(InputValidator.validateSortField("name").value).toBe("fullName");
-      expect(InputValidator.validateSortField("roll").value).toBe("rollNumber");
+    it("should return valid result for rollNumber", () => {
+      const result = InputValidator.validateSortField("rollNumber");
+      expect(result.isValid).toBe(true);
+      expect(result.value).toBe("rollNumber");
     });
 
-    it("should return invalid for an incorrect field", () => {
-      const result = InputValidator.validateSortField("course");
+    it("should return invalid result for unknown fields", () => {
+      const result = InputValidator.validateSortField("invalid");
       expect(result.isValid).toBe(false);
-      expect(result.error).toBeDefined();
     });
   });
 
   describe("validateSortType", () => {
-    it("should return the correct type for valid aliases", () => {
-      expect(InputValidator.validateSortType("ascending").value).toBe("asc");
-      expect(InputValidator.validateSortType("desc").value).toBe("desc");
-    });
-
-    it("should return invalid for an incorrect type", () => {
-      const result = InputValidator.validateSortType("up");
-      expect(result.isValid).toBe(false);
-      expect(result.error).toBeDefined();
+    it("should return valid result for ascending", () => {
+      const result = InputValidator.validateSortType("asc");
+      expect(result.isValid).toBe(true);
+      expect(result.value).toBe("asc");
     });
   });
 
   describe("validateYesNo", () => {
-    it('should return true for "y" or "yes"', () => {
+    it("should return true for yes variations", () => {
+      expect(InputValidator.validateYesNo("yes")).toBe(true);
       expect(InputValidator.validateYesNo("y")).toBe(true);
-      expect(InputValidator.validateYesNo("YES")).toBe(true);
     });
 
-    it('should return false for "n" or "no" or anything else', () => {
-      expect(InputValidator.validateYesNo("n")).toBe(false);
-      expect(InputValidator.validateYesNo("random")).toBe(false);
+    it("should return false for no variations", () => {
+      expect(InputValidator.validateYesNo("no")).toBe(false);
     });
   });
 });

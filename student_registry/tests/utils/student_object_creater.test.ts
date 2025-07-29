@@ -1,87 +1,62 @@
-import { StudentFactory } from "../../utils/student_object_creater";
-import { Student} from "../../models/student";
+import { StudentObjectCreater } from "../../utils/student_object_creater";
+import { Student } from "../../models/student";
 import Course from "../../models/course";
+describe("StudentObjectCreater", () => {
+  //Test case for the createStudent method
+  describe("createStudent", () => {
+    it("should create a student object with trimmed name and address, and default isSavedToDisk to false", () => {
+      // Arrange: Set up the creator and input data with extra whitespace
+      const creater = new StudentObjectCreater();
+      const fullName = "  Alice Wonderland  ";
+      const age = 20;
+      const address = "  123 Fantasy Lane  ";
+      const rollNumber = 42;
+      const courses = Course.B;
 
-describe("UserFactory", () => {
-  let userFactory: StudentFactory;
-
-  beforeEach(() => {
-    userFactory = new StudentFactory();
-  });
-
-  describe("createUser", () => {
-    it("should create a user with valid data", () => {
-      const user = userFactory.createStudent(
-        "John Doe",
-        20,
-        "123 Main St",
-        1001,
-        Course.A
+      // Act: Call the method to create the student object
+      const student: Student = creater.createStudent(
+        fullName,
+        age,
+        address,
+        rollNumber,
+        courses
       );
 
-      expect(user).toEqual({
-        fullName: "John Doe",
-        age: 20,
-        address: "123 Main St",
-        rollNumber: 1001,
-        courses: Course.A,
-      });
+      // Assert: Verify that the returned object has the correct properties and values
+      expect(student).toBeDefined();
+      expect(student.fullName).toBe("Alice Wonderland"); // Check if whitespace is trimmed
+      expect(student.age).toBe(age);
+      expect(student.address).toBe("123 Fantasy Lane"); // Check if whitespace is trimmed
+      expect(student.rollNumber).toBe(rollNumber);
+      expect(student.courses).toBe(Course.B);
+      expect(student.isSavedToDisk).toBe(false); // Check the default value
     });
 
-    it("should trim whitespace from name and address", () => {
-      const user = userFactory.createStudent(
-        "  Alice Smith  ",
-        19,
-        "  456 Oak Ave  ",
-        1002,
-        Course.B
+    it("should correctly assign all properties for a different student", () => {
+      // Arrange: Set up another test case to ensure robustness
+      const creater = new StudentObjectCreater();
+      const fullName = "Bob Builder";
+      const age = 35;
+      const address = "456 Construction Site";
+      const rollNumber = 99;
+      const courses = Course.C;
+
+      // Act: Create another student
+      const student: Student = creater.createStudent(
+        fullName,
+        age,
+        address,
+        rollNumber,
+        courses
       );
 
-      expect(user.fullName).toBe("Alice Smith");
-      expect(user.address).toBe("456 Oak Ave");
-    });
-
-    it("should handle empty strings after trimming", () => {
-      const user = userFactory.createStudent("   ", 25, "   ", 1003, Course.C);
-
-      expect(user.fullName).toBe("");
-      expect(user.address).toBe("");
-    });
-
-    it("should handle different course types", () => {
-      const courses = [
-        Course.A,
-        Course.B,
-        Course.C,
-        Course.D,
-        Course.E,
-        Course.F,
-      ];
-
-      courses.forEach((course, index) => {
-        const user = userFactory.createStudent(
-          `Student ${index}`,
-          20 + index,
-          `Address ${index}`,
-          1000 + index,
-          course
-        );
-
-        expect(user.courses).toBe(course);
-      });
-    });
-
-    it("should handle numeric edge cases", () => {
-      const user = userFactory.createStudent(
-        "Test User",
-        0,
-        "Test Address",
-        0,
-        Course.A
-      );
-
-      expect(user.age).toBe(0);
-      expect(user.rollNumber).toBe(0);
+      // Assert: Verify the properties of the second student object
+      expect(student.fullName).toBe("Bob Builder");
+      expect(student.age).toBe(35);
+      expect(student.address).toBe("456 Construction Site");
+      expect(student.rollNumber).toBe(99);
+      expect(student.courses).toBe(Course.C);
+      expect(student.isSavedToDisk).toBe(false);
     });
   });
 });

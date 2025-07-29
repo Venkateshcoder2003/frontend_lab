@@ -1,9 +1,8 @@
 import { choices } from "../../models/choices";
 
 describe("choices Enum", () => {
-  /**
-   * Test to ensure each enum member has the correct assigned numeric value.
-   */
+  //Test to ensure each enum member has the correct assigned numeric value
+
   test("should have the correct numeric values for each option", () => {
     // Assert
     expect(choices.ADD).toBe(1);
@@ -14,20 +13,19 @@ describe("choices Enum", () => {
   });
 
   /**
-   * Test to verify the total number of options is correct.
-   * For numeric enums, Object.keys returns both keys and values,
-   * so we filter for non-numeric keys to get the actual member count.
+   * Test to verify the total number of options is correct
+   * For numeric enums, Object.keys returns both keys and values
+   * so we filter for non-numeric keys to get the actual member count
    */
   test("should have exactly 5 options", () => {
-
     const memberKeys = Object.keys(choices).filter((key) => isNaN(Number(key)));
 
     expect(memberKeys).toHaveLength(5);
   });
 
   /**
-   * Test to confirm the reverse mapping from number to string,
-   * which is a unique feature of numeric enums in TypeScript.
+   * Test to confirm the reverse mapping from number to string
+   * which is a unique feature of numeric enums in TypeScript
    */
   test("should have correct reverse mapping from value to key", () => {
     // Assert
@@ -39,7 +37,7 @@ describe("choices Enum", () => {
   });
 
   /**
-   * Test to ensure the enum contains all expected member names.
+   * Test to ensure the enum contains all expected member names
    */
   test("should contain all expected member names", () => {
     // Arrange

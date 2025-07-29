@@ -1,48 +1,32 @@
-// tests/index.test.ts
+import { MenuController } from "../utils/menu_controller";
 
-// --- 1. Mock the MenuController ---
-// We create a mock for the showMenu method to spy on it.
-const mockShowMenu = jest.fn();
+//This replaces the real class with a fake version
+jest.mock("../utils/menu_controller");
 
-// We mock the entire module. When the entry point file calls `new MenuContoller()`,
-// Jest will return an object with our mock `showMenu` method.
-jest.mock("../utils/menu_controller", () => {
-  // This is a factory function for the mock.
-  return {
-    // We are mocking the named export 'MenuContoller'.
-    MenuContoller: jest.fn().mockImplementation(() => {
-      // The constructor mock returns an object with the methods we want to spy on.
-      return {
-        showMenu: mockShowMenu,
-      };
-    }),
-  };
-});
+//Create a typed mock for easier access
+const mockedMenuController = MenuController as jest.MockedClass<
+  typeof MenuController
+>;
 
-describe("Application Entry Point (index.ts)", () => {
-  // Before each test, clear the history of our mocks and reset the module cache.
+describe("Application Entry Point", () => {
+  //Before each test, clear the history of our mock
   beforeEach(() => {
-    // jest.resetModules() is crucial. It ensures that the require('../index')
-    // call inside the test re-imports the module, applying the mock correctly for each test.
-    jest.resetModules();
-    jest.clearAllMocks();
+    mockedMenuController.mockClear();
   });
 
-  it("should create an instance of MenuContoller and call showMenu", () => {
-    // --- 2. Act ---
-    // We import/require the entry point file here. This will execute its code.
-    // Using require inside the test ensures it runs after the mocks are set up for this specific test.
-    require("../index");
+  it("should create a MenuController instance and call showMenu once", () => {
+    //Arrange: No setup is needed because importing the file is the action
 
-    // --- 3. Assert ---
-    // After running index.ts, we require the mocked module again to get a
-    // reference to the mock constructor that was just called.
-    const { MenuContoller } = require("../utils/menu_controller");
+    //Act: Import the main application file
+    //When this line runs, the code inside 'index.ts' will execute
+    require("../index"); //Assuming your main file is named index.ts
 
-    // Check that the MenuContoller constructor was called exactly once.
-    expect(MenuContoller).toHaveBeenCalledTimes(1);
+    //Was the MenuController constructor called exactly one time?
+    expect(MenuController).toHaveBeenCalledTimes(1);
 
-    // Check that the showMenu method on the instance was called exactly once.
+    //Was the showMenu method called on the instance that was created?
+    const mockInstance = mockedMenuController.mock.instances[0];
+    const mockShowMenu = mockInstance.showMenu;
     expect(mockShowMenu).toHaveBeenCalledTimes(1);
   });
 });

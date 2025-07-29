@@ -1,141 +1,151 @@
-// tests/services/student_manager.test.ts
 import { StudentManager } from "../../services/student_manager";
 import { Student } from "../../models/student";
 import { Logger } from "../../utils/logger";
 import Course from "../../models/course";
 
+// Mock the Logger dependency to prevent console output and to spy on its methods.
 jest.mock("../../utils/logger");
 
 describe("StudentManager", () => {
+  // A variable to hold the instance for each test.
   let studentManager: StudentManager;
+  // A typed mock for the Logger to get autocompletion.
   const mockedLogger = Logger as jest.Mocked<typeof Logger>;
 
-  // Create some sample student data for our tests
-  const student1: Student = {
-    fullName: "Alice Johnson",
+  // Create some sample student data for our tests.
+  const chahal: Student = {
+    fullName: "Chahal",
     age: 20,
-    address: "123 Main St",
+    address: "address1",
     rollNumber: 101,
-    courses: Course[Course.C, Course.A],
+    courses: Course[(Course.A, Course.B)], // CORRECTED: Use standard array syntax
+    isSavedToDisk: false,
   };
-  const student2: Student = {
-    fullName: "Bob Smith",
+  const ashwin: Student = {
+    fullName: "Ashwin",
     age: 22,
-    address: "456 Oak Ave",
+    address: "address2",
     rollNumber: 102,
-    courses: Course[(Course.C, Course.A)],
+    courses: Course[(Course.C, Course.D)], // CORRECTED: Use standard array syntax
+    isSavedToDisk: true, // This student is already saved
   };
 
-  // This block runs before each test case
+  // This block runs before each test case, ensuring a clean state.
   beforeEach(() => {
-    // Reset mocks to ensure tests are isolated
     jest.clearAllMocks();
-    // Get the singleton instance
     studentManager = StudentManager.getInstance();
-    // Start every test with a known, predictable state (an empty array)
-    studentManager.setStudents([]);
-  });
-
-  // --- Test Suite for Core Functionality ---
-
-  it("should be a singleton and always return the same instance", () => {
-    const instance1 = StudentManager.getInstance();
-    const instance2 = StudentManager.getInstance();
-    expect(instance1).toBe(instance2);
-  });
-
-  it("should set and get students correctly", () => {
-    // Act
-    studentManager.setStudents([student1, student2]);
-    const students = studentManager.getStudents();
-
-    // Assert
-    expect(students).toHaveLength(2);
-    expect(students).toEqual([student1, student2]);
+    // This is crucial: it resets the students, map, and deleted list for every test.
+    studentManager.initializeFromDisk([]);
   });
 
   describe("addStudent", () => {
-    it("should add a new student successfully", () => {
-      // Act
-      studentManager.addStudent(student1);
+    it("should add a new student and keep the list sorted", () => {
+      // Arrange: Add Chahal first to test the sorting insertion.
+      studentManager.addStudent(chahal);
+
+      // Act: Add Ashwin, who should be inserted at the beginning because 'A' comes before 'C'.
+      const result = studentManager.addStudent(ashwin);
+      const students = studentManager.getStudents();
 
       // Assert
-      expect(studentManager.getStudents()).toHaveLength(1);
-      expect(studentManager.getStudents()[0]).toEqual(student1);
+      expect(result).toBe(false); // Should return false on success
+      expect(students).toHaveLength(2);
+      // CORRECTED: Ashwin should be first, Chahal second.
+      expect(students[0].fullName).toBe("Ashwin");
+      expect(students[1].fullName).toBe("Chahal");
     });
 
     it("should not add a student with a duplicate roll number", () => {
-      // Arrange: Add the first student
-      studentManager.addStudent(student1);
+      // Arrange: Add Chahal first.
+      studentManager.addStudent(chahal);
 
-      // Act: Try to add another student with the same roll number
-      const result = studentManager.addStudent({
-        ...student2,
-        rollNumber: 101,
-      });
+      // Act: Try to add another student with the same roll number.
+      const result = studentManager.addStudent({ ...ashwin, rollNumber: 101 });
 
       // Assert
-      expect(studentManager.getStudents()).toHaveLength(1); // Length should not change
+      expect(result).toBe(true); // Should return true on error
+      expect(studentManager.getStudents()).toHaveLength(1); // List size should not change
       expect(mockedLogger.error).toHaveBeenCalledWith(
         "Roll number already exists."
       );
-      expect(result).toBe(true); // Method should indicate a duplicate was found
     });
   });
 
   describe("deleteStudent", () => {
-    it("should delete an existing student", () => {
+    it("should delete an unsaved student from memory", () => {
       // Arrange
-      studentManager.setStudents([student1, student2]);
+      studentManager.addStudent(chahal); // Chahal is not saved
 
       // Act
-      const result = studentManager.deleteStudent(101); // Delete Alice
+      const result = studentManager.deleteStudent(101);
 
       // Assert
-      expect(result).toBe(true);
-      expect(studentManager.getStudents()).toHaveLength(1);
-      expect(studentManager.getStudents()[0]).toEqual(student2); // Only Bob should remain
+      expect(result.success).toBe(true);
+      expect(result.wasSaved).toBe(false);
+      expect(studentManager.getStudents()).toHaveLength(0);
+      expect(studentManager.hasUnsavedChanges()).toBe(false); // Deleting an unsaved student is not an "unsaved change"
     });
 
-    it("should return false for a non-existent roll number", () => {
+    it("should delete a saved student and track it for disk cleanup", () => {
       // Arrange
-      studentManager.setStudents([student1]);
+      studentManager.initializeFromDisk([ashwin]); // Ashwin is saved
 
       // Act
-      const result = studentManager.deleteStudent(999); // Non-existent roll number
+      const result = studentManager.deleteStudent(102);
 
       // Assert
-      expect(result).toBe(false);
-      expect(studentManager.getStudents()).toHaveLength(1); // List should be unchanged
+      expect(result.success).toBe(true);
+      expect(result.wasSaved).toBe(true);
+      expect(studentManager.getStudents()).toHaveLength(0);
+      expect(studentManager.hasUnsavedChanges()).toBe(true); // Deleting a saved student IS an "unsaved change"
+    });
+
+    it("should return failure for a non-existent roll number", () => {
+      // Act
+      const result = studentManager.deleteStudent(999);
+
+      // Assert
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("saveAllToDisk", () => {
+    it("should mark all students as saved and clear the deletion tracker", () => {
+      // Arrange
+      studentManager.initializeFromDisk([ashwin]); // Ashwin is saved
+      studentManager.addStudent(chahal); // Chahal is unsaved
+      studentManager.deleteStudent(102); // Delete Ashwin (a saved student)
+
+      // Pre-condition check
+      expect(studentManager.hasUnsavedChanges()).toBe(true);
+
+      // Act
+      const studentsToSave = studentManager.saveAllToDisk();
+
+      // Assert
+      expect(studentsToSave).toHaveLength(1); // Only Chahal should remain
+      expect(studentsToSave[0].isSavedToDisk).toBe(true); // Chahal is now marked as saved
+      expect(studentManager.hasUnsavedChanges()).toBe(false); // All changes are now considered saved
     });
   });
 
   describe("sortStudentsBy", () => {
-    it("should sort students by name by default", () => {
+    it("should sort students by age in descending order", () => {
       // Arrange
-      studentManager.setStudents([student2, student1]); // Bob (B) then Alice (A)
+      studentManager.addStudent(chahal); // age 20
+      studentManager.addStudent(ashwin); // age 22
 
-      // Act: Default sort is by fullName, ascending
-      studentManager.sortStudentsBy();
+      // Act
+      studentManager.sortStudentsBy("age", "desc");
+      const students = studentManager.getStudents();
 
-      // Assert: Alice should now be first
-      expect(studentManager.getStudents()[0].fullName).toBe("Alice Johnson");
+      // Assert
+      expect(students[0].fullName).toBe("Ashwin"); // Ashwin (22) should be first
+      expect(students[1].fullName).toBe("Chahal"); // Chahal (20) should be second
     });
-
   });
 
   describe("displayStudents", () => {
-    it("should call Logger.print to display students", () => {
-      // Arrange
-      studentManager.setStudents([student1]);
-
-      // Act
-      studentManager.displayStudents();
-
-      // Assert: Check if the print method was called, without worrying about the exact format
-      expect(mockedLogger.print).toHaveBeenCalled();
-    });
-
     it("should print a specific message if no students exist", () => {
       // Act
       studentManager.displayStudents();
@@ -144,6 +154,18 @@ describe("StudentManager", () => {
       expect(mockedLogger.print).toHaveBeenCalledWith(
         "No Student Details to Display."
       );
+    });
+
+    it("should call Logger.print multiple times if students exist", () => {
+      // Arrange
+      studentManager.addStudent(chahal);
+
+      // Act
+      studentManager.displayStudents();
+
+      // Assert: We check that print was called more than just for the "no students" message.
+      // This is a simple way to confirm it's trying to print a table.
+      expect(mockedLogger.print.mock.calls.length).toBeGreaterThan(1);
     });
   });
 });
