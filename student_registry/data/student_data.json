@@ -1,0 +1,28 @@
+[
+  {
+    "fullName": "Name1",
+    "age": 12,
+    "address": "address1",
+    "rollNumber": 1,
+    "courses": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "isSavedToDisk": true
+  },
+  {
+    "fullName": "name2",
+    "age": 13,
+    "address": "address2",
+    "rollNumber": 2,
+    "courses": [
+      "A",
+      "B",
+      "D",
+      "E"
+    ],
+    "isSavedToDisk": true
+  }
+]
